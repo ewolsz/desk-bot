@@ -1,0 +1,23 @@
+name: Desk bot report
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Report
+        env:
+          ALPACA_KEY: ${{ secrets.ALPACA_KEY }}
+          ALPACA_SECRET: ${{ secrets.ALPACA_SECRET }}
+        run: python3 bot/desk_bot.py report --out report
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desk-bot-report
+          path: report/
