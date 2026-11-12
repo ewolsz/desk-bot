@@ -1,0 +1,33 @@
+name: Desk bot flatten
+
+on:
+  schedule:
+    - cron: "42 19 * * 1-5"   # 3:42 PM New York in summer
+    - cron: "42 20 * * 1-5"   # 3:42 PM New York in winter
+  workflow_dispatch:
+    inputs:
+      now:
+        description: "Sell everything right now instead of waiting for 3:52 PM"
+        type: boolean
+        default: false
+
+concurrency:
+  group: desk-bot-flatten
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  flatten:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Flatten
+        env:
+          ALPACA_KEY: ${{ secrets.ALPACA_KEY }}
+          ALPACA_SECRET: ${{ secrets.ALPACA_SECRET }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          NOW: ${{ inputs.now && '--now' || '' }}
+        run: python3 bot/desk_bot.py flatten $NOW
