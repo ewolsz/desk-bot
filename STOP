@@ -1,0 +1,6 @@
+While this file exists, the desk bot sends no alerts and no orders.
+
+Delete this file to switch the bot on (paper account only).
+Add a file called STOP again to switch it off.
+
+Run the test alert first: Actions > Desk bot > Run workflow > test-alert.

@@ -1,0 +1,65 @@
+{
+  "_about": "Settings for the desk bot. The trading rules and risk limits are the day bot's, unchanged. The desk block is the approval step. Change nothing here while a test is running.",
+
+  "budget": 5000,
+  "cash_buffer_pct": 10,
+  "max_position_pct": 30,
+  "max_order_usd": 1500,
+  "min_order_usd": 100,
+  "max_loss_per_trade_usd": 50,
+  "max_daily_loss_usd": 150,
+  "max_trades_per_day": 3,
+  "min_reward_risk": 1.0,
+  "halt_drawdown_pct": 15,
+
+  "desk": {
+    "approval_minutes": 10,
+    "max_alerts_per_day": 6,
+    "button_style": "http",
+    "replays": 10000,
+    "seed": 19,
+    "history_days": 90
+  },
+
+  "setup": "orb",
+  "bar_minutes": 5,
+  "or_minutes": 15,
+  "stop_rule": "or-mid",
+  "target_r": 2.0,
+  "min_risk_pct": 0.05,
+
+  "no_entries_before": "09:45",
+  "no_entries_after": "10:30",
+  "flat_by": "15:55",
+  "skip_early_close_days": true,
+
+  "live_feed": "iex",
+  "paper": true,
+  "allow_short": false,
+  "allow_margin": false,
+  "allow_options": false,
+
+  "universe": [
+    "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "AVGO", "AMD", "NFLX",
+    "JPM", "BAC", "WFC", "GS", "MS", "C", "V", "MA",
+    "XOM", "CVX", "UNH", "LLY", "JNJ", "PFE", "MRK", "ABBV",
+    "WMT", "COST", "HD", "KO", "PEP", "MCD", "DIS", "NKE",
+    "BA", "CAT", "GE", "F", "GM", "UBER",
+    "INTC", "MU", "CSCO", "ORCL", "CRM", "ADBE", "QCOM", "T", "VZ", "PLTR"
+  ],
+
+  "study": {
+    "slippage_bps_per_side": 2,
+    "explore_from": "2019-01-01",
+    "explore_until": "2022-12-31",
+    "final_test_from": "2023-01-01",
+    "benchmark": "SPY",
+    "pass_mark": [
+      "At least 300 trades taken by the simulated account in the test window.",
+      "Average trade after costs is above zero, and its 95% range (resampled by day) stays above zero.",
+      "Breakout entries beat entries taken at the same minute in every stock on the list, breakout or not, and the 95% range of the difference stays above zero.",
+      "The account's worst drop is smaller than the benchmark's.",
+      "The account's yearly return beats buying and holding the benchmark over the same dates."
+    ]
+  }
+}
