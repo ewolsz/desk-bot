@@ -1,0 +1,55 @@
+name: Desk bot
+
+on:
+  schedule:
+    - cron: "40 13 * * 1-5"   # 9:40 AM New York in summer
+    - cron: "40 14 * * 1-5"   # 9:40 AM New York in winter
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "status = check the connection. test-alert = send a sample alert to your phone, no orders. dry-run = one look now, nothing sent. run = the real morning session."
+        type: choice
+        default: status
+        options:
+          - status
+          - test-alert
+          - dry-run
+          - run
+
+concurrency:
+  group: desk-bot-morning
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  morning:
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+      - name: Desk bot
+        env:
+          ALPACA_KEY: ${{ secrets.ALPACA_KEY }}
+          ALPACA_SECRET: ${{ secrets.ALPACA_SECRET }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          MODE: ${{ github.event_name == 'schedule' && 'run' || inputs.mode }}
+        run: |
+          case "$MODE" in
+            status)     python3 bot/desk_bot.py status ;;
+            test-alert) python3 bot/desk_bot.py test-alert ;;
+            dry-run)    python3 bot/desk_bot.py run --once --dry-run ;;
+            *)          python3 bot/desk_bot.py run ;;
+          esac
+      - name: Save the alert log
+        if: always()
+        run: |
+          if [ -n "$(git status --porcelain log)" ]; then
+            git config user.name "desk-bot"
+            git config user.email "desk-bot@users.noreply.github.com"
+            git add log
+            git commit -m "Alert log $(date -u +%Y-%m-%d)"
+            git pull --rebase
+            git push
+          fi
