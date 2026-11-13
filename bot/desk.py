@@ -30,14 +30,15 @@ import timemachine as tm
 from rules import ET, hhmm
 
 LOG_FIELDS = [
-    "date", "symbol", "triggered", "entry", "stop", "target", "qty", "risk_usd",
+    "date", "symbol", "side", "triggered", "entry", "stop", "target", "qty", "risk_usd",
     "tm_target_pct", "tm_stop_pct", "tm_neither_pct", "tm_green_pct", "tm_avg_r", "tm_sessions",
     "hist_trades", "hist_target", "hist_stop", "hist_flat", "hist_avg_r",
     "rel_volume", "spy_pct", "headlines", "headline",
     "decision", "decided", "note", "buy_ref",
     "outcome", "outcome_r",
 ]
-BOUGHT = "bought"
+BOUGHT = "bought"            # the alert was approved and the order went in (a buy or a short)
+FILTERED = "filtered"        # a trigger that was logged but not sent to the phone
 
 
 # ---------------------------------------------------------------------------
@@ -67,7 +68,7 @@ def tm_sessions(bars: list, before: str) -> list:
     return full
 
 
-def rule_history(bars: list, cfg: dict, before: str, dates: set | None = None) -> dict:
+def rule_history(bars: list, cfg: dict, before: str, dates: set | None = None, side: str = "long") -> dict:
     """This bot's own rule (same window, stop, target, flat-by) on each past session.
     R is +target_r at the target, -1 at the stop, else the distance at the flat-by time."""
     flat_by = hhmm(cfg["flat_by"])
@@ -79,7 +80,7 @@ def rule_history(bars: list, cfg: dict, before: str, dates: set | None = None) -
             continue
         out["sessions"] += 1
         sb = rules.session_bars(rows, bm)
-        setup = rules.day_setup(sb, cfg)
+        setup = rules.day_setup(sb, cfg, side)
         if not setup or setup["status"] != "triggered":
             continue
         plan = setup["plan"]
@@ -88,7 +89,7 @@ def rule_history(bars: list, cfg: dict, before: str, dates: set | None = None) -
                                          gap_fills=False)
         out["trades"] += 1
         out[why] += 1
-        rs.append((px - plan["entry"]) / plan["risk"])
+        rs.append(((plan["entry"] - px) if side == "short" else (px - plan["entry"])) / plan["risk"])
     if rs:
         out["avg_r"] = round(sum(rs) / len(rs), 3)
     return out
@@ -107,13 +108,15 @@ def replay(history_bars: list, plan: dict, trigger_bar: dict, cfg: dict, day: st
     last = (flat.hour * 60 + flat.minute - tm.OPEN_MIN) // 5 - 1
     if last <= k:
         return {"ok": False, "why": "nothing left of the day to replay"}
-    mc = tm.simulate(tm.build_pool(sessions), plan["entry"], plan["stop"], plan["target"], k, last, replays, seed)
+    side = "short" if rules.is_short(plan["stop"], plan["target"]) else "long"
+    mc = tm.simulate(tm.build_pool(sessions), plan["entry"], plan["stop"], plan["target"], k, last, replays, seed,
+                     side="sell" if side == "short" else "buy")
     mc = {key: v for key, v in mc.items() if key not in ("bands", "sample_paths", "hist")}
     mc["until"] = cfg["flat_by"]
     return {
         "ok": True, "mc": mc, "sessions": len(sessions), "from": sessions[0][0], "to": sessions[-1][0],
         "verdict": tm.verdict(mc), "notes": tm.verdict_notes(mc), "lean": tm.lean(mc),
-        "history": rule_history(history_bars, cfg, day, {d for d, _ in sessions}),
+        "history": rule_history(history_bars, cfg, day, {d for d, _ in sessions}, side),
     }
 
 
@@ -163,12 +166,27 @@ NAMES = {
 }
 
 
-def about(symbol: str, items: list | None) -> list:
+GENERIC = {"the", "first", "american", "united", "general", "national", "global", "new", "international", "bank",
+           "energy", "group", "holdings", "capital", "digital", "applied", "advanced", "western", "southern",
+           "northern", "royal", "public", "liberty", "trade", "live", "block", "unity", "match", "snap", "zoom",
+           "carnival", "target", "visa", "meta", "open", "super", "rocket", "core", "arm", "delta", "world"}
+
+
+def name_word(asset_name: str):
+    """A word to look for in headlines, from the broker's company name ("Rivian Automotive, Inc. Class A
+    Common Stock" -> "Rivian"), or None when the first word is too short or too common to trust."""
+    first = re.split(r"[\s,.]+", (asset_name or "").strip())[0] if asset_name else ""
+    if len(first) < 5 or first.lower() in GENERIC or not first[0].isalpha():
+        return None
+    return first
+
+
+def about(symbol: str, items: list | None, extra: list | None = None) -> list:
     """The headlines that are about this company: the headline itself names the
     company (or the ticker, for tickers of three letters or more). An article that
     is only tagged with the ticker, like a round-up or a story about a rival, does
     not count. Newest first, as given."""
-    words = list(NAMES.get(symbol, []))
+    words = list(NAMES.get(symbol, [])) + [w for w in (extra or []) if w]
     if len(symbol) >= 3:
         words.append(symbol)
     out = []
@@ -183,7 +201,10 @@ def about(symbol: str, items: list | None) -> list:
 def key_points(o: dict, tmres: dict, relvol, spy_pct, headlines: list | None, limit: int = 4) -> list:
     """Up to four plain facts behind the alert, good or bad. Numbers and headlines, no opinions.
     headlines: the ones about this company (from about()), or None when news was not checked."""
-    pts = [f"Breakout: first close above the opening 15-minute high, at {o['triggered']}."]
+    if o.get("side") == "short":
+        pts = [f"Breakdown: first close below the opening 15-minute low, at {o['triggered']}."]
+    else:
+        pts = [f"Breakout: first close above the opening 15-minute high, at {o['triggered']}."]
     if tmres.get("ok"):
         h = tmres["history"]
         if h["trades"]:
@@ -222,17 +243,27 @@ def likelihood(tmres: dict):
 
 def alert_text(o: dict, tmres: dict, points: list, expires: datetime, cfg: dict) -> tuple:
     """(title, body) for the phone: four lines and the key points."""
-    title = f"Desk: buy {o['symbol']}? Tap by {expires:%H:%M} ET"
+    short = o.get("side") == "short"
+    title = f"Desk: {'SHORT' if short else 'buy'} {o['symbol']}? Tap by {expires:%H:%M} ET"
     like = likelihood(tmres)
     lines = [
-        f"Buy at: {o['ref']:.2f} ({o['qty']} shares)",
+        (f"Short at: {o['ref']:.2f} ({o['qty']} shares, profits if it falls)" if short
+         else f"Buy at: {o['ref']:.2f} ({o['qty']} shares)"),
         f"Stop loss at: {o['stop']:.2f}",
-        f"Sell at: {o['target']:.2f}",
+        f"{'Buy back' if short else 'Sell'} at: {o['target']:.2f}",
         "Success likelihood: " + ("not available" if like is None else f"{like}%"),
         "",
         "Key points:",
     ] + ["- " + x for x in points]
     return title, "\n".join(lines)
+
+
+def good_record(hist: dict, cfg: dict) -> bool:
+    """Has this setup, on this stock and side, made money over the recent sessions?
+    The bar for sending an alert. A few dozen trades is thin evidence; it ranks, it does not predict."""
+    d = cfg["desk"]
+    return (hist["trades"] >= d["min_hist_trades"] and hist["avg_r"] is not None
+            and hist["avg_r"] > d["min_hist_avg_r"])
 
 
 # ---------------------------------------------------------------------------
@@ -294,7 +325,7 @@ def save_log(path: Path, rows: list) -> None:
 
 def log_row(day: str, o: dict, tmres: dict, relvol, spy_pct, headlines) -> dict:
     row = {k: "" for k in LOG_FIELDS}
-    row.update({"date": day, "symbol": o["symbol"], "triggered": o["triggered"], "entry": f"{o['entry']:.2f}",
+    row.update({"date": day, "symbol": o["symbol"], "side": o.get("side", "long"), "triggered": o["triggered"], "entry": f"{o['entry']:.2f}",
                 "stop": f"{o['stop']:.2f}", "target": f"{o['target']:.2f}", "qty": str(o["qty"]),
                 "risk_usd": f"{o['risk_usd']:.2f}", "decision": "pending",
                 "rel_volume": "" if relvol is None else str(relvol),
@@ -312,6 +343,17 @@ def log_row(day: str, o: dict, tmres: dict, relvol, spy_pct, headlines) -> dict:
     return row
 
 
+def filtered_row(day: str, o: dict, hist: dict | None, note: str) -> dict:
+    """A trigger that passed the risk checks but was not sent. Logged so it can be scored like the rest."""
+    row = log_row(day, o, {"ok": False}, None, None, None)
+    row.update({"decision": FILTERED, "note": note})
+    if hist:
+        row.update({"hist_trades": str(hist["trades"]), "hist_target": str(hist["target"]),
+                    "hist_stop": str(hist["stop"]), "hist_flat": str(hist["flat"]),
+                    "hist_avg_r": "" if hist["avg_r"] is None else f"{hist['avg_r']:.3f}"})
+    return row
+
+
 def score_row(row: dict, day_bars: list, cfg: dict):
     """What the plan did that day if bought at the trigger close: (outcome, R), or
     None when the day's bars are not all there yet. The same yardstick for every
@@ -326,7 +368,7 @@ def score_row(row: dict, day_bars: list, cfg: dict):
     after = [b for b in sb if b["t"] >= closes_at]
     entry, stop, target = float(row["entry"]), float(row["stop"]), float(row["target"])
     px, why, _ = rules.simulate_exit(after, entry, stop, target, flat_by, bm)
-    return why, round((px - entry) / (entry - stop), 3)
+    return why, round((px - entry) / (entry - stop), 3)     # the same formula gives a short's R: both signs flip
 
 
 def compare(rows: list) -> str:
@@ -341,6 +383,8 @@ def compare(rows: list) -> str:
         c = {k: sum(1 for r in grp if r["outcome"] == k) for k in ("target", "stop", "flat")}
         return f"| {name} | {n} | {c['target']} | {c['stop']} | {c['flat']} | {sum(rs) / n:+.2f} |"
 
+    unsent = [r for r in scored if r["decision"] == FILTERED]
+    scored_all, scored = scored, [r for r in scored if r["decision"] != FILTERED]
     bought = [r for r in scored if r["decision"] == BOUGHT]
     passed = [r for r in scored if r["decision"] != BOUGHT]
     md = [
@@ -349,9 +393,15 @@ def compare(rows: list) -> str:
         f"the flat-by time. R is the result in units of the planned loss.", "",
         "| group | alerts | target | stop | neither | average R |",
         "| --- | --- | --- | --- | --- | --- |",
-        line("Every alert", scored), line("You approved (bought)", bought), line("Not bought", passed), "",
+        line("Every alert", scored), line("You approved (bought)", bought), line("Not bought", passed),
     ]
-    waiting = len(rows) - len(scored)
+    if any(r.get("side") == "short" for r in scored):
+        md += [line("Alerts to buy", [r for r in scored if r.get("side") != "short"]),
+               line("Alerts to short", [r for r in scored if r.get("side") == "short"])]
+    if unsent:
+        md.append(line("Triggers not sent (weak record)", unsent))
+    md.append("")
+    waiting = len(rows) - len(scored_all)
     if waiting:
         md.append(f"{waiting} alert(s) not scored yet.")
     if len(scored) < 100:
