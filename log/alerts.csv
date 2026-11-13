@@ -1,7 +1,13 @@
-date,symbol,triggered,entry,stop,target,qty,risk_usd,tm_target_pct,tm_stop_pct,tm_neither_pct,tm_green_pct,tm_avg_r,tm_sessions,hist_trades,hist_target,hist_stop,hist_flat,hist_avg_r,rel_volume,spy_pct,headlines,decision,decided,note,buy_ref,outcome,outcome_r
-2026-11-12,CSCO,09:50,100.72,100.01,102.14,14,9.94,17.9,60.7,21.4,33.3,-0.152,63,23,3,12,8,-0.181,1.14,0.45,7,expired,10:00:20,no tap in time,,,
-2026-11-12,NKE,09:50,38.55,38.34,38.97,38,7.98,35.3,60.3,4.4,38.6,0.126,63,24,5,8,11,0.368,0.76,0.45,0,expired,10:00:20,no tap in time,,,
-2026-11-12,QCOM,09:50,179.66,177.28,184.42,8,19.04,22.7,52.0,25.3,42.3,0.070,63,19,2,11,6,-0.220,0.4,0.45,0,expired,10:00:20,no tap in time,,,
-2026-11-12,AMZN,09:55,273.25,270.15,279.45,5,15.70,5.5,29.7,64.8,49.1,0.038,63,19,4,10,5,0.032,1.33,0.55,3,bought,10:01:39,,273.25,,
-2026-11-12,NVDA,10:00,162.62,155.56,176.74,7,49.42,0.0,0.3,99.7,37.4,-0.105,63,23,2,14,7,-0.354,9.26,0.51,10,skipped,10:02:31,,,,
-2026-11-12,GOOGL,10:00,296.86,295.36,299.86,5,7.50,24.8,66.3,8.8,31.4,-0.127,63,23,3,13,7,-0.207,2.49,0.51,7,bought,10:02:20,,296.86,,
+date,symbol,triggered,entry,stop,target,qty,risk_usd,tm_target_pct,tm_stop_pct,tm_neither_pct,tm_green_pct,tm_avg_r,tm_sessions,hist_trades,hist_target,hist_stop,hist_flat,hist_avg_r,rel_volume,spy_pct,headlines,headline,decision,decided,note,buy_ref,outcome,outcome_r
+2026-11-12,CSCO,09:50,100.72,100.01,102.14,14,9.94,17.9,60.7,21.4,33.3,-0.152,63,23,3,12,8,-0.181,1.14,0.45,7,,expired,10:00:20,no tap in time,,target,2.000
+2026-11-12,NKE,09:50,38.55,38.34,38.97,38,7.98,35.3,60.3,4.4,38.6,0.126,63,24,5,8,11,0.368,0.76,0.45,0,,expired,10:00:20,no tap in time,,stop,-1.000
+2026-11-12,QCOM,09:50,179.66,177.28,184.42,8,19.04,22.7,52.0,25.3,42.3,0.070,63,19,2,11,6,-0.220,0.4,0.45,0,,expired,10:00:20,no tap in time,,stop,-1.000
+2026-11-12,AMZN,09:55,273.25,270.15,279.45,5,15.70,5.5,29.7,64.8,49.1,0.038,63,19,4,10,5,0.032,1.33,0.55,3,,bought,10:01:39,,273.25,stop,-1.000
+2026-11-12,NVDA,10:00,162.62,155.56,176.74,7,49.42,0.0,0.3,99.7,37.4,-0.105,63,23,2,14,7,-0.354,9.26,0.51,10,,skipped,10:02:31,,,flat,0.401
+2026-11-12,GOOGL,10:00,296.86,295.36,299.86,5,7.50,24.8,66.3,8.8,31.4,-0.127,63,23,3,13,7,-0.207,2.49,0.51,7,,bought,10:02:20,,296.86,stop,-1.000
+2026-11-13,MSFT,09:50,522.88,517.34,533.96,2,11.44,4.7,33.1,62.1,46.1,-0.031,63,32,2,13,17,-0.063,1.04,-0.58,6,"Chamath Palihapitiya Says Nvidia Oversight Would Be A ‘Disaster’ After Jensen Huang's Exit, Warns Against Repeating Microsoft’s DOJ Era",skipped,09:51:46,,,,
+2026-11-13,WMT,09:50,128.15,126.99,130.47,11,12.98,7.3,28.7,64.0,52.1,0.114,63,35,5,11,19,0.234,0.51,-0.58,1,Wells Fargo Adjusts Price Target on Walmart to $135 From $120,bought,09:50:45,,128.15,,
+2026-11-13,PEP,09:50,144.12,143.45,145.46,10,6.70,32.3,54.3,13.5,42.2,0.171,63,38,4,16,18,0.096,0.75,-0.58,1,PepsiCo's Cheetos Brand Partners with 7-Eleven for New Breakfast Menu Item,skipped,09:51:26,,,,
+2026-11-13,META,09:55,635.99,630.18,647.61,2,12.06,24.6,54.5,20.8,39.3,0.028,63,30,4,14,12,-0.151,0.59,-0.57,1,Meta’s TikTok Threat Just Became Bigger Than Oracle,skipped,09:58:24,,,,
+2026-11-13,MA,10:00,660.53,657.74,666.11,2,5.58,26.8,58.1,15.1,38.0,0.027,63,33,3,9,21,0.013,0.92,-0.73,2,"The Wall Street Journal Reported JPMorgan Chase Blocking Some Agentic Purchases With Chase Cards; Merchants Have Complained To Visa, Mastercard About Higher Fees From Certain Agentic Transactions",expired,10:10:20,no tap in time,,,
+2026-11-13,V,10:00,425.50,423.90,428.70,3,5.28,31.9,57.9,10.2,39.3,0.105,63,35,4,8,23,0.209,0.63,-0.73,4,UQPAY Secures Visa Associate Membership in Australia,expired,10:10:20,no tap in time,,,
