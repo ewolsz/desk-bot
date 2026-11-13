@@ -99,7 +99,7 @@ Delete the file `STOP`. From the next trading day you get alerts between 9:50 AM
 
 ## What has and has not been checked
 
-Checked offline by the 76 tests in `tests/`:
+Checked offline by the 77 tests in `tests/`:
 - The Time Machine gives the skill's own published numbers for TSLA on Oct 19 2026 (target first 29.4%, stop first 25.5%, neither 45.1%, average R +0.034; history 33 trades, 13 target, 15 stop, 5 neither).
 - No tap means no order. A late tap, a tap after the price ran, a tap after the stop was hit, a tap with no current price, and a tap over the daily limits are all refused. One tap buys once.
 - The whole morning loop on a fake clock, including an alert that still gets its 10 minutes at the end of the window.
@@ -108,7 +108,7 @@ Checked offline by the 76 tests in `tests/`:
 Not checked, because it needs your phone, your keys and a live market:
 - **The buttons on your iPhone.** Step 5 is the test.
 - The first real conversation with Alpaca, including the news lookup and the 60-day history download. If any of those fail the alert still goes out, with "not checked" in place of the missing line.
-- GitHub can start scheduled jobs late. A late start only misses early bars.
+- GitHub often starts scheduled jobs late, sometimes by close to an hour. The bot is scheduled several times each morning and afternoon: a run that starts early waits, the first one inside the window does the work, and the rest exit or queue as backups. A late start still only misses early bars.
 - Saving `log/alerts.csv` back to the repository. If the step "Save the alert log" fails on the first morning, tell Claude.
 
 Known limits:
@@ -129,7 +129,7 @@ bot/timemachine.py      the skill's Time Machine, unchanged (MIT, Jake Schincari
 config/desk_bot.json    every setting and the stock list
 log/alerts.csv          every alert, what you did, and what the plan went on to do
 scripts/orb_study.py    the backtest code (used by the tests; the rule already failed it)
-tests/                  76 offline tests
+tests/                  77 offline tests
 .github/workflows/      the three schedules
 STOP                    the off switch
 ```
