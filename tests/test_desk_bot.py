@@ -79,7 +79,7 @@ class Decide(unittest.TestCase):
         self.assertEqual(r["orders"], [])
 
     def test_breakout_after_the_window_is_ignored(self):
-        r = desk_bot.decide(CFG, {"AAPL": morning(breakout_at="10:30", until="10:30")}, {}, state(), at("10:35", 20))
+        r = desk_bot.decide(MORNING_ONLY, {"AAPL": morning(breakout_at="10:30", until="10:30")}, {}, state(), at("10:35", 20))
         self.assertEqual(r["orders"], [])
 
     def test_price_that_ran_away_is_blocked(self):
@@ -120,14 +120,17 @@ class Timing(unittest.TestCase):
         self.assertIsNone(desk_bot.run_gate(CFG, at("10:05"), self.open_dt, self.close_dt))       # a late start still works
         self.assertIn("too early", desk_bot.run_gate(CFG, at("08:40"), self.open_dt, self.close_dt))
         self.assertIn("too early", desk_bot.run_gate(CFG, at("09:20"), self.open_dt, self.close_dt))  # a delayed off-season slot
-        self.assertIn("past", desk_bot.run_gate(CFG, at("10:40"), self.open_dt, self.close_dt))
+        self.assertIsNone(desk_bot.run_gate(CFG, at("10:40"), self.open_dt, self.close_dt))    # the window runs to 15:00
+        self.assertIn("past", desk_bot.run_gate(CFG, at("15:01"), self.open_dt, self.close_dt))
         self.assertIn("early close", desk_bot.run_gate(CFG, at("09:43"), self.open_dt, at("13:00")))
 
     def test_next_check(self):
         self.assertEqual(desk_bot.next_check(CFG, at("09:41")), at("09:50", 20))    # first bar after the range
         self.assertEqual(desk_bot.next_check(CFG, at("09:52")), at("09:55", 20))
         self.assertEqual(desk_bot.next_check(CFG, at("10:25", 30)), at("10:30", 20))
-        self.assertIsNone(desk_bot.next_check(CFG, at("10:30", 30)))
+        self.assertIsNone(desk_bot.next_check(MORNING_ONLY, at("10:30", 30)))
+        self.assertEqual(desk_bot.next_check(CFG, at("14:55", 30)), at("15:00", 20))
+        self.assertIsNone(desk_bot.next_check(CFG, at("15:00", 30)))
 
     def test_flatten_plan(self):
         self.assertEqual(desk_bot.flatten_plan(CFG, at("15:45"), self.close_dt), ("go", at("15:52")))
@@ -162,7 +165,8 @@ class FakeAlpaca:
         return {s: self.latest[s] for s in symbols if s in self.latest}
 
     def news(self, symbol, start, limit=10):
-        return ["Apple unveils a thing"]
+        return [{"headline": "Chip stocks rally after Jensen Huang remarks", "symbols": ["NVDA", "AMD", symbol]},
+                {"headline": "Apple unveils a thing", "symbols": ["AAPL"]}]
 
     def submit(self, order):
         self.submitted.append(order)
@@ -220,8 +224,10 @@ class Broker(unittest.TestCase):
         self.assertEqual(self.titles(), ["Desk: buy AAPL? Tap by 10:25 ET"])
         self.assertIn("approve AAPL 20261110", self.alerts[0]["actions"])
         self.assertIn("skip AAPL 20261110", self.alerts[0]["actions"])
-        self.assertIn("Buy 14 AAPL near 101.50 | stop 100.00 | target 104.50", self.alerts[0]["body"])
-        self.assertIn("Will not buy above 102.25", self.alerts[0]["body"])
+        body = self.alerts[0]["body"]
+        self.assertTrue(body.startswith("Buy at: 101.50 (14 shares)\nStop loss at: 100.00\nSell at: 104.50\nSuccess likelihood: "))
+        self.assertIn("- News: Apple unveils a thing", body)             # the one that names the company
+        self.assertNotIn("Jensen", body)                                  # only tagged with the ticker
         self.assertFalse(r["done"])
         self.assertEqual(set(sess.pending), {"AAPL"})
         row = desk.load_log(sess.log_path)[0]
@@ -382,6 +388,9 @@ class Broker(unittest.TestCase):
         self.assertIn("+36.00 USD", md)
 
 
+MORNING_ONLY = {**CFG, "no_entries_after": "10:30"}
+
+
 class Clock:
     def __init__(self, start):
         self.now = start
@@ -437,7 +446,8 @@ class Morning(unittest.TestCase):
         self.assertEqual(alerts, ["Desk: buy AAPL? Tap by 10:25 ET", "Desk bought AAPL"])
         self.assertEqual(rows[0]["decision"], "bought")
         self.assertLess(rows[0]["decided"], "10:17:30")                   # heard within one poll
-        self.assertLess(end, at("10:31"))
+        self.assertGreater(end, at("15:00"))                               # it keeps watching until the last entry time
+        self.assertLess(end, at("15:01"))
 
     def test_no_tap_means_no_trade_and_a_late_alert_still_gets_its_ten_minutes(self):
         bars = {"AAPL": morning(until="10:30"), "MSFT": morning(breakout_at="10:25", until="10:30")}
@@ -445,8 +455,7 @@ class Morning(unittest.TestCase):
         self.assertEqual(api.submitted, [])
         self.assertEqual({r["symbol"]: r["decision"] for r in rows}, {"AAPL": "expired", "MSFT": "expired"})
         self.assertEqual(alerts, ["Desk: buy AAPL? Tap by 10:25 ET", "Desk: buy MSFT? Tap by 10:40 ET"])
-        self.assertGreater(end, at("10:40"))
-        self.assertLess(end, at("10:42"))
+        self.assertLess(end, at("15:01"))
 
     def test_stop_file_sends_nothing(self):
         import types
