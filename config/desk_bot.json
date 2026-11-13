@@ -1,5 +1,5 @@
 {
-  "_about": "Settings for the desk bot. The trading rules and risk limits are the day bot's, unchanged. The desk block is the approval step. Change nothing here while a test is running.",
+  "_about": "Settings for the desk bot. The trading rules and risk limits are the day bot's, plus a short side that mirrors the long one. universe is the fixed list; each day's top movers are added to it. The desk block is the approval step. Change nothing here while a test is running.",
 
   "budget": 5000,
   "cash_buffer_pct": 10,
@@ -14,7 +14,12 @@
 
   "desk": {
     "approval_minutes": 10,
-    "max_alerts_per_day": 6,
+    "max_alerts_per_day": 8,
+    "max_alerts_per_check": 2,
+    "max_ranked_per_check": 30,
+    "min_hist_trades": 8,
+    "min_hist_avg_r": 0.0,
+    "movers_top": 50,
     "button_style": "http",
     "replays": 10000,
     "seed": 19,
@@ -33,19 +38,37 @@
   "flat_by": "15:55",
   "skip_early_close_days": true,
 
+  "min_price": 5.0,
+  "min_dollar_volume": 100000,
+
   "live_feed": "iex",
   "paper": true,
-  "allow_short": false,
+  "allow_short": true,
   "allow_margin": false,
   "allow_options": false,
 
   "universe": [
-    "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "AVGO", "AMD", "NFLX",
-    "JPM", "BAC", "WFC", "GS", "MS", "C", "V", "MA",
-    "XOM", "CVX", "UNH", "LLY", "JNJ", "PFE", "MRK", "ABBV",
-    "WMT", "COST", "HD", "KO", "PEP", "MCD", "DIS", "NKE",
-    "BA", "CAT", "GE", "F", "GM", "UBER",
-    "INTC", "MU", "CSCO", "ORCL", "CRM", "ADBE", "QCOM", "T", "VZ", "PLTR"
+    "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "AVGO", "AMD", "NFLX", "JPM", "BAC",
+    "WFC", "GS", "MS", "C", "V", "MA", "XOM", "CVX", "UNH", "LLY", "JNJ", "PFE",
+    "MRK", "ABBV", "WMT", "COST", "HD", "KO", "PEP", "MCD", "DIS", "NKE", "BA", "CAT",
+    "GE", "F", "GM", "UBER", "INTC", "MU", "CSCO", "ORCL", "CRM", "ADBE", "QCOM", "T",
+    "VZ", "PLTR", "TSM", "ASML", "ARM", "MRVL", "AMAT", "LRCX", "KLAC", "TXN", "ADI", "NXPI",
+    "ON", "MCHP", "SMCI", "DELL", "HPQ", "HPE", "IBM", "NOW", "SNOW", "PANW", "CRWD", "ZS",
+    "NET", "DDOG", "MDB", "SHOP", "PYPL", "COIN", "HOOD", "SOFI", "AFRM", "UPST", "RBLX", "U",
+    "TTD", "ROKU", "SPOT", "PINS", "SNAP", "ABNB", "DASH", "LYFT", "BKNG", "EXPE", "INTU", "WDAY",
+    "TEAM", "OKTA", "TWLO", "DOCU", "ZM", "APP", "ANET", "CDNS", "SNPS", "FTNT", "MSTR", "IONQ",
+    "RGTI", "QBTS", "SOUN", "AI", "PATH", "NBIS", "IREN", "CIFR", "MARA", "RIOT", "CLSK", "CORZ",
+    "CRWV", "ONDS", "USAR", "MP", "OKLO", "SMR", "VST", "CEG", "NRG", "GEV", "TTWO", "EA",
+    "RIVN", "LCID", "NIO", "XPEV", "LI", "SBUX", "CMG", "TGT", "LOW", "TJX", "LULU", "DKNG",
+    "CVNA", "CCL", "RCL", "NCLH", "UAL", "DAL", "AAL", "LUV", "MAR", "HLT", "PG", "PM",
+    "MO", "MDLZ", "EL", "ETSY", "EBAY", "CHWY", "DG", "DLTR", "KR", "GME", "AXP", "SCHW",
+    "BLK", "BX", "KKR", "APO", "COF", "USB", "PNC", "TFC", "CME", "ICE", "ABT", "TMO",
+    "AMGN", "GILD", "BMY", "CVS", "CI", "ELV", "HUM", "ISRG", "VRTX", "REGN", "MRNA", "NVO",
+    "HIMS", "MDT", "BSX", "HON", "UPS", "FDX", "LMT", "RTX", "NOC", "GD", "DE", "MMM",
+    "UNP", "CSX", "ETN", "RKLB", "ASTS", "JOBY", "ACHR", "LUNR", "COP", "OXY", "SLB", "HAL",
+    "DVN", "EOG", "MPC", "VLO", "PSX", "KMI", "FCX", "NEM", "AA", "CLF", "NUE", "ALB",
+    "CMCSA", "TMUS", "WBD", "BABA", "PDD", "JD", "BIDU", "SE", "MELI", "NU", "GRAB", "CPNG",
+    "CAVA", "CELH", "RDDT", "DUOL", "AXON", "TOST"
   ],
 
   "study": {
