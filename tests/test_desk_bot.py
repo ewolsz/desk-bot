@@ -15,7 +15,9 @@ import desk_bot  # noqa: E402
 import rules  # noqa: E402
 from rules import ET  # noqa: E402
 
-CFG = json.loads((ROOT / "config" / "desk_bot.json").read_text())
+REAL = json.loads((ROOT / "config" / "desk_bot.json").read_text())
+CFG = copy.deepcopy(REAL)                  # most tests: every trigger is sent, as before the record filter
+CFG["desk"].update({"min_hist_trades": 0, "max_alerts_per_check": 99, "max_alerts_per_day": 6})
 DAY = "2026-11-10"
 
 
@@ -64,7 +66,7 @@ class Decide(unittest.TestCase):
         self.assertEqual(req["stop_loss"], {"stop_price": "100.00"})
         self.assertEqual(req["take_profit"], {"limit_price": "104.50"})
         self.assertEqual(req["client_order_id"], "desk-20261110-AAPL-r2100")
-        self.assertEqual(desk_bot.parse_tag(req["client_order_id"]), {"day": DAY, "symbol": "AAPL", "risk": 21.0})
+        self.assertEqual(desk_bot.parse_tag(req["client_order_id"]), {"day": DAY, "symbol": "AAPL", "risk": 21.0, "side": "long"})
 
     def test_bar_still_forming_is_not_a_trigger(self):
         r = desk_bot.decide(CFG, {"AAPL": morning()}, {}, state(), at("10:13"))
@@ -147,6 +149,7 @@ class FakeAlpaca:
         self._bars, self._positions, self._orders = bars or {}, positions or [], orders or []
         self.equity, self.cash, self.stuck = equity, cash, stuck
         self.submitted, self.calls, self.latest = [], [], {}
+        self._assets, self._movers, self.history = None, {}, None
 
     def account(self):
         return {"equity": str(self.equity), "cash": str(self.cash), "last_equity": "5000"}
@@ -161,10 +164,20 @@ class FakeAlpaca:
         return list(self._orders)
 
     def bars(self, symbols, start, end, feed, **kw):
+        if end is not None and self.history is not None:                 # a request for past days
+            return {s: self.history.get(s, []) for s in symbols}
         return {s: self._bars.get(s, []) for s in symbols}
 
     def latest_trades(self, symbols, feed):
         return {s: self.latest[s] for s in symbols if s in self.latest}
+
+    def assets(self):
+        if self._assets is None:
+            raise RuntimeError("no asset list in this test")
+        return self._assets
+
+    def movers(self, top=50):
+        return self._movers
 
     def news(self, symbol, start, limit=10):
         return [{"headline": "Chip stocks rally after Jensen Huang remarks", "symbols": ["NVDA", "AMD", symbol]},
@@ -250,7 +263,8 @@ class Broker(unittest.TestCase):
         api = FakeAlpaca(bars={s: morning() for s in ("AAPL", "MSFT", "NVDA")})
         sess = session()
         desk_bot.cycle(api, cfg, at("10:15", 20), sess)
-        self.assertEqual(len(sess.rows), 2)
+        self.assertEqual(len(self.alerts), 1 + 2)                           # the third was not sent...
+        self.assertEqual(sorted(r["decision"] for r in sess.rows), ["filtered", "pending", "pending"])   # ...but is logged
 
     def test_alert_that_cannot_be_sent_is_not_pending(self):
         desk_bot.notify = lambda *a, **k: False
@@ -393,6 +407,191 @@ class Broker(unittest.TestCase):
 MORNING_ONLY = {**CFG, "no_entries_after": "10:30"}
 
 
+def slump(breakdown_at="10:10", close=98.5, until="10:10"):
+    """The mirror of morning(): range 99.00 to 101.00 (stop 100.00), then a close below at `breakdown_at`."""
+    rows = [bar("09:30", 100, 101, 99, 100), bar("09:35", 100, 100.8, 99.5, 100.2), bar("09:40", 100.2, 100.9, 99.8, 99.5)]
+    t = at("09:45")
+    while t <= at(until):
+        hm = t.strftime("%H:%M")
+        if hm == breakdown_at:
+            rows.append(bar(hm, 99.4, 99.5, close - 0.1, close))
+        elif hm > breakdown_at:
+            rows.append(bar(hm, close, close + 0.2, close - 0.2, close))
+        else:
+            rows.append(bar(hm, 99.5, 99.7, 99.1, 99.4))
+        t += timedelta(minutes=5)
+    return rows
+
+
+def past(days_ago, rows, then):
+    """A past session: `rows`, then one bar `then` = (o, h, l, c), moved back `days_ago` days."""
+    last = rows[-1]["t"] + timedelta(minutes=5)
+    full = rows + [{"t": last, "o": then[0], "h": then[1], "l": then[2], "c": then[3], "v": 1000}]
+    return [{**b, "t": b["t"] - timedelta(days=days_ago)} for b in full]
+
+
+def record(wins, losses, rows=None, short=False):
+    """Past sessions where the setup hit its target `wins` times and its stop `losses` times."""
+    rows = rows or (slump() if short else morning())
+    win = (98.5, 98.6, 95.0, 95.2) if short else (101.5, 105.0, 101.4, 104.8)
+    loss = (98.5, 100.5, 98.4, 100.2) if short else (101.5, 101.6, 99.5, 99.8)
+    out = []
+    for i in range(wins + losses):
+        out += past(i + 1, rows, win if i < wins else loss)
+    return out
+
+
+SHORT = copy.deepcopy(CFG)
+SHORT["allow_short"] = True
+LONG_ONLY = {**CFG, "allow_short": False}
+
+
+class Shorts(unittest.TestCase):
+    def setUp(self):
+        self._sleep, self._notify = desk_bot._time.sleep, desk_bot.notify
+        desk_bot._time.sleep = lambda s: None
+        self.alerts = []
+        desk_bot.notify = lambda title, body="", actions="", priority="": self.alerts.append(
+            {"title": title, "body": body, "actions": actions}) or True
+
+    def tearDown(self):
+        desk_bot._time.sleep, desk_bot.notify = self._sleep, self._notify
+
+    def test_the_rules_mirror(self):
+        plan, why = rules.plan_exit(98.5, 101.0, 99.0, SHORT, "short")
+        self.assertEqual((plan["stop"], plan["risk"], plan["target"], plan["side"]), (100.0, 1.5, 95.5, "short"))
+        plan, _ = rules.plan_exit(100.10, 100.40, 100.25, SHORT, "short")      # midpoint 100.325 rounds UP, away from the entry
+        self.assertEqual(plan["stop"], 100.33)
+        self.assertIsNone(rules.plan_exit(100.5, 101.0, 99.0, SHORT, "short")[0])   # the stop is not above the entry
+        sb = rules.session_bars(slump())
+        self.assertEqual(rules.day_setup(sb, SHORT, "short")["status"], "triggered")
+        self.assertEqual(rules.day_setup(sb, SHORT, "long")["status"], "waiting")
+        self.assertEqual(rules.day_setup(rules.session_bars(morning()), SHORT, "short")["status"], "waiting")
+        self.assertEqual(rules.reward_risk(98.5, 100.0, 95.5), 2.0)
+        self.assertEqual(rules.size_order(98.5, 100.0, SHORT, 5000, 0, 5000, "short")[0], 15)
+        self.assertEqual(rules.size_order(98.5, 100.0, SHORT, 5000, 0, 5000, "long")[0], 0)
+        today = {"trades": 0, "risk_used": 0.0, "equity": 5000}
+        self.assertEqual(rules.risk_check(15, 98.5, 100.0, 95.5, SHORT, today), [])
+        self.assertTrue(any("reward:risk" in w for w in rules.risk_check(15, 97.6, 100.0, 95.5, SHORT, today)))
+
+    def test_exits_mirror(self):
+        from datetime import time
+        t0 = at("10:15")
+        mk = lambda rows: [{"t": t0 + timedelta(minutes=5 * i), "o": o, "h": h, "l": lo, "c": c, "v": 1}
+                           for i, (o, h, lo, c) in enumerate(rows)]
+        self.assertEqual(rules.simulate_exit(mk([(98.5, 98.7, 95.4, 95.6)]), 98.5, 100.0, 95.5, time(15, 55))[:2], (95.5, "target"))
+        self.assertEqual(rules.simulate_exit(mk([(98.5, 100.2, 95.0, 99)]), 98.5, 100.0, 95.5, time(15, 55))[:2], (100.0, "stop"))
+        self.assertEqual(rules.simulate_exit(mk([(98.5, 98.9, 98.1, 98.4), (101, 101.5, 100.8, 101)]), 98.5, 100.0, 95.5,
+                                             time(15, 55))[:2], (101, "stop"))        # a gap over the stop fills at the open
+        row = {"triggered": "10:15", "entry": "98.50", "stop": "100.00", "target": "95.50", "side": "short"}
+        day = slump(until="15:50")
+        self.assertEqual(desk.score_row(row, day, SHORT), ("flat", 0.0))
+        day[10] = {**day[10], "l": 95.0}
+        self.assertEqual(desk.score_row(row, day, SHORT), ("target", 2.0))
+
+    def test_decide_finds_shorts_only_when_allowed(self):
+        bars = {"AAPL": slump(), "MSFT": morning()}
+        r = desk_bot.decide(SHORT, bars, {}, state(), at("10:15", 20))
+        self.assertEqual({(o["symbol"], o["side"]) for o in r["orders"]}, {("AAPL", "short"), ("MSFT", "long")})
+        o = next(o for o in r["orders"] if o["side"] == "short")
+        self.assertEqual((o["qty"], o["entry"], o["stop"], o["target"], round(o["risk_usd"], 2)), (15, 98.5, 100.0, 95.5, 22.5))
+        req = o["request"]
+        self.assertEqual((req["side"], req["stop_loss"], req["take_profit"]), ("sell", {"stop_price": "100.00"}, {"limit_price": "95.50"}))
+        self.assertEqual(desk_bot.parse_tag(req["client_order_id"]), {"day": DAY, "symbol": "AAPL", "risk": 22.5, "side": "short"})
+        self.assertEqual([o["symbol"] for o in desk_bot.decide(LONG_ONLY, bars, {}, state(), at("10:15", 20))["orders"]], ["MSFT"])
+        hard = desk_bot.decide(SHORT, bars, {}, state(), at("10:15", 20), can_short=lambda s: False)
+        self.assertEqual([o["symbol"] for o in hard["orders"]], ["MSFT"])          # not shortable at the broker
+        self.assertEqual(desk_bot.decide(SHORT, bars, {"AAPL": 97.6}, state(), at("10:15", 20))["orders"][0]["symbol"], "MSFT")  # it ran
+
+    def test_thin_and_cheap_stocks_are_left_out(self):
+        bars = {"AAPL": morning(vol=10), "MSFT": morning(base=3.0, close=4.5)}
+        self.assertEqual(desk_bot.decide(SHORT, bars, {}, state(), at("10:15", 20))["orders"], [])
+
+    def test_independent_checks_do_not_use_up_the_day(self):
+        bars = {s: morning() for s in ("AAPL", "MSFT", "NVDA", "AMZN", "META")}
+        self.assertEqual(len(desk_bot.decide(SHORT, bars, {}, state(), at("10:15", 20))["orders"]), 3)
+        self.assertEqual(len(desk_bot.decide(SHORT, bars, {}, state(), at("10:15", 20), independent=True)["orders"]), 5)
+
+    def test_short_alert_and_approval(self):
+        api, sess = FakeAlpaca(bars={"AAPL": slump()}), session()
+        desk_bot.cycle(api, SHORT, at("10:15", 20), sess)
+        a = self.alerts[0]
+        self.assertEqual(a["title"], "Desk: SHORT AAPL? Tap by 10:25 ET")
+        self.assertTrue(a["body"].startswith("Short at: 98.50 (15 shares, profits if it falls)\nStop loss at: 100.00\nBuy back at: 95.50\n"))
+        self.assertIn("- Breakdown: first close below the opening 15-minute low, at 10:15.", a["body"])
+        self.assertIn("http, Approve short, ", a["actions"])
+        self.assertEqual((sess.rows[0]["side"], api.submitted), ("short", []))
+        api.latest = {"AAPL": 98.4}
+        desk_bot.handle_replies(api, SHORT, sess, at("10:18"), [tap("approve", "AAPL")])
+        req = api.submitted[0]
+        self.assertEqual((req["side"], req["qty"], req["order_class"]), ("sell", "15", "bracket"))
+        self.assertEqual(self.alerts[-1]["title"], "Desk shorted AAPL")
+        self.assertEqual((sess.rows[0]["decision"], sess.rows[0]["buy_ref"]), ("bought", "98.40"))
+
+    def test_short_approval_refused_when_the_price_turned_or_ran(self):
+        prop = {"symbol": "AAPL", "side": "short", "entry": 98.5, "stop": 100.0, "target": 95.5, "expires": at("10:25")}
+        self.assertIn("over the stop", desk_bot.approve(SHORT, prop, 100.1, state(), at("10:18"))[2])
+        self.assertIn("reward:risk", desk_bot.approve(SHORT, prop, 97.6, state(), at("10:18"))[2])
+        req, line, why = desk_bot.approve(SHORT, prop, 98.6, state(), at("10:18"))       # a small bounce: still the plan
+        self.assertEqual((req["side"], why), ("sell", None))
+        self.assertTrue(line.startswith("SHORT 15 AAPL near 98.50"))
+
+    def test_a_short_counts_as_todays_trade_and_as_the_bots_own(self):
+        orders = [order("desk-20261110-ZZZZ-s2250", "ZZZZ", side="sell"), order("x", "ZZZZ", side="buy")]
+        self.assertEqual([(e["symbol"], e["side"]) for e in desk_bot.todays_entries(orders, DAY)], [("ZZZZ", "short")])
+        pos = [{"symbol": "ZZZZ", "qty": "-15", "market_value": "-1477"}]
+        self.assertIsNone(desk_bot.wrong_account(CFG, pos, orders))              # a mover the bot traded itself
+        self.assertIn("QQQQ", desk_bot.wrong_account(CFG, [], [order("x", "QQQQ")]))
+        api = FakeAlpaca(positions=pos, orders=orders)
+        self.assertEqual(desk_bot.read_state(api, CFG, DAY)["deployed"], 1477.0)
+
+    def test_movers_are_vetted(self):
+        assets = {
+            "RIVN": {"tradable": True, "exchange": "NASDAQ", "name": "Rivian Automotive, Inc. Class A Common Stock"},
+            "TQQQ": {"tradable": True, "exchange": "NASDAQ", "name": "ProShares UltraPro QQQ"},
+            "OTCC": {"tradable": True, "exchange": "OTC", "name": "Some OTC Company"},
+            "HALT": {"tradable": False, "exchange": "NYSE", "name": "Halted Corp"},
+            "PENY": {"tradable": True, "exchange": "NYSE", "name": "Penny Corp"},
+            "BIGV": {"tradable": True, "exchange": "NYSE", "name": "Bigvolume Corp"},
+            "AAPL": {"tradable": True, "exchange": "NASDAQ", "name": "Apple Inc. Common Stock"},
+        }
+        raw = {"gainers": [{"symbol": "RIVN", "price": 14.2}, {"symbol": "PENY", "price": 1.1}, {"symbol": "NOPE", "price": 9}],
+               "losers": [{"symbol": "OTCC", "price": 20}, {"symbol": "HALT", "price": 30}, {"symbol": "AB.WS", "price": 8}],
+               "actives": [{"symbol": "TQQQ"}, {"symbol": "AAPL"}, {"symbol": "BIGV"}, {"symbol": "RIVN"}]}
+        self.assertEqual(desk_bot.pick_movers(REAL, raw, assets, {"AAPL"}), ["RIVN", "BIGV"])
+        api, sess = FakeAlpaca(), session()
+        api._assets = [{"symbol": k, **v, "shortable": k != "BIGV", "easy_to_borrow": True} for k, v in assets.items()]
+        api._movers = raw
+        cfg = {**REAL, "universe": ["AAPL", "HALT"]}
+        self.assertEqual(desk_bot.day_universe(api, cfg, sess, with_movers=False), ["AAPL"])     # not tradable: left out
+        self.assertEqual(desk_bot.day_universe(api, cfg, sess), ["AAPL", "RIVN", "BIGV"])
+        self.assertEqual(desk_bot.day_universe(api, cfg, sess), ["AAPL", "RIVN", "BIGV"])        # read once a day
+        self.assertEqual((sess.can_short("RIVN"), sess.can_short("BIGV"), sess.can_short("NOPE")), (True, False, False))
+        self.assertTrue(session().can_short("ANY"))                                               # unknown: the broker decides
+
+    def test_only_winning_records_are_sent_best_first(self):
+        cfg = copy.deepcopy(REAL)
+        cfg["desk"].update({"max_alerts_per_check": 2})
+        syms = ("AAPL", "MSFT", "NVDA", "AMZN", "META", "TSLA")
+        api, sess = FakeAlpaca(bars={s: morning() for s in syms[:5]} | {"TSLA": slump()}), session()
+        api.history = {"AAPL": record(5, 5), "MSFT": record(8, 2), "NVDA": record(1, 9), "AMZN": record(3, 1),
+                       "META": record(6, 4), "TSLA": record(9, 1, short=True)}
+        desk_bot.cycle(api, cfg, at("10:15", 20), sess)
+        self.assertEqual([a["title"][:17] for a in self.alerts], ["Desk: SHORT TSLA?", "Desk: buy MSFT? T"])   # +1.70 R, then +1.40 R
+        by = {r["symbol"]: r for r in sess.rows}
+        self.assertEqual({k: v["decision"] for k, v in by.items()},
+                         {"TSLA": "pending", "MSFT": "pending", "AAPL": "filtered", "META": "filtered",
+                          "NVDA": "filtered", "AMZN": "filtered"})
+        self.assertIn("weak record: average -0.70 R over 10", by["NVDA"]["note"])
+        self.assertIn("only 4 past trades", by["AMZN"]["note"])
+        self.assertIn("2 better alerts", by["AAPL"]["note"])                 # +0.50 R: good, but two were better
+        self.assertEqual((by["NVDA"]["hist_trades"], by["NVDA"]["hist_avg_r"], by["NVDA"]["side"]), ("10", "-0.700", "long"))
+        self.assertEqual(sess.sent(), 2)
+        desk_bot.cycle(api, cfg, at("10:15", 40), sess)                      # nothing is asked or logged twice
+        self.assertEqual((len(self.alerts), len(sess.rows)), (2, 6))
+        self.assertEqual(desk.load_log(sess.log_path)[2]["decision"], "filtered")
+
+
 class Clock:
     def __init__(self, start):
         self.now = start
@@ -421,11 +620,12 @@ class Morning(unittest.TestCase):
             alerts.append(title)
             return True
 
-        saved = {k: getattr(desk_bot, k) for k in ("now_et", "connect", "notify", "poll_replies", "STOP_FILE", "LOG", "summary")}
+        saved = {k: getattr(desk_bot, k) for k in ("now_et", "connect", "notify", "poll_replies", "STOP_FILE", "LOG", "summary", "load_cfg")}
         saved_sleep, saved_topic = desk_bot._time.sleep, os.environ.get("NTFY_TOPIC")
         desk_bot.now_et, desk_bot.connect = (lambda: clock.now), (lambda: api)
         desk_bot.notify, desk_bot.poll_replies, desk_bot.summary = fake_notify, fake_poll, (lambda md: None)
         desk_bot.STOP_FILE, desk_bot.LOG = tmp / "STOP", tmp / "alerts.csv"
+        desk_bot.load_cfg = lambda *a, **k: CFG
         desk_bot._time.sleep = clock.sleep
         os.environ["NTFY_TOPIC"] = "t"
         try:
