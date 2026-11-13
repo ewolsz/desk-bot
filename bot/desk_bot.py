@@ -10,11 +10,13 @@ account, where nothing is bought until a person taps Approve on their phone.
     python3 bot/desk_bot.py report               # results so far, and approved vs every alert
 
 What it does each trading day:
-  1. From 9:45 to 10:30 New York time it checks ~50 large stocks after every
-     5-minute bar closes. A stock triggers on its first 5-minute close above the
-     first 15 minutes' high. Stop (range midpoint) and target (2x the risk) are
-     fixed first, the size is the smallest of four limits, and every risk check
-     must pass. This part is the day bot, unchanged.
+  1. From 9:45 to 3:00 New York time it checks about 250 stocks, plus the day's
+     biggest movers, after every 5-minute bar closes. A stock triggers on its first 5-minute close above the
+     first 15 minutes' high (a buy), or below their low (a short: a bet that it
+     falls). Stop (range midpoint) and target (2x the risk) are fixed first, the
+     size is the smallest of four limits, and every risk check must pass.
+     Triggers are ranked by how the same setup did on that stock lately; only
+     the ones with a winning record go to the phone, a few at a time.
   2. Instead of buying, it runs the skill's Time Machine on the plan and sends a
      phone alert: the plan, the odds, the lines for and against, and two
      buttons, Approve and Skip.
@@ -86,8 +88,8 @@ DEAD = {"canceled", "rejected", "expired"}
 
 def load_cfg(path: Path = CONFIG) -> dict:
     cfg = json.loads(Path(path).read_text())
-    if cfg.get("paper") is not True or cfg.get("allow_short") or cfg.get("allow_margin") or cfg.get("allow_options"):
-        sys.exit("config: this bot is paper-only, long-only, no margin, no options")
+    if cfg.get("paper") is not True or cfg.get("allow_margin") or cfg.get("allow_options"):
+        sys.exit("config: this bot is paper-only, no leverage, no options")
     return cfg
 
 
@@ -135,13 +137,13 @@ def reply_topic() -> str:
     return f"{topic}-ok" if topic else ""
 
 
-def buttons(symbol: str, day: str, style: str = "http") -> str:
+def buttons(symbol: str, day: str, style: str = "http", approve_label: str = "Approve buy") -> str:
     """The Approve and Skip buttons: each sends one short line to the reply topic.
     "http" posts it straight from the notification. "view" opens a ntfy web link
     that does the same, for phones where http buttons do not work."""
     base = f"https://ntfy.sh/{reply_topic()}"
     out = []
-    for label, act in (("Approve buy", "approve"), ("Skip", "skip")):
+    for label, act in ((approve_label, "approve"), ("Skip", "skip")):
         text = desk.reply_text(act, symbol, day)
         if style == "view":
             out.append(f"view, {label}, {base}/publish?message={urllib.parse.quote_plus(text)}, clear=true")
@@ -175,20 +177,33 @@ def summary(md: str) -> None:
             f.write(md + "\n")
 
 
-def make_tag(day: str, symbol: str, risk_usd: float) -> str:
-    return f"{TAG}-{day.replace('-', '')}-{symbol}-r{int(round(risk_usd * 100))}"
+def make_tag(day: str, symbol: str, risk_usd: float, side: str = "long") -> str:
+    return f"{TAG}-{day.replace('-', '')}-{symbol}-{'s' if side == 'short' else 'r'}{int(round(risk_usd * 100))}"
 
 
 def parse_tag(cid: str):
-    """desk-20261110-TSLA-r4688 -> {"day": "2026-11-10", "symbol": "TSLA", "risk": 46.88}"""
+    """desk-20261110-TSLA-r4688 -> {"day": "2026-11-10", "symbol": "TSLA", "risk": 46.88, "side": "long"}.
+    The letter before the risk is r for a buy and s for a short."""
     parts = (cid or "").split("-")
-    if len(parts) != 4 or parts[0] != TAG or len(parts[1]) != 8 or not parts[3].startswith("r"):
+    if len(parts) != 4 or parts[0] != TAG or len(parts[1]) != 8 or parts[3][:1] not in ("r", "s"):
         return None
     try:
         d = parts[1]
-        return {"day": f"{d[:4]}-{d[4:6]}-{d[6:]}", "symbol": parts[2], "risk": int(parts[3][1:]) / 100.0}
+        return {"day": f"{d[:4]}-{d[4:6]}-{d[6:]}", "symbol": parts[2], "risk": int(parts[3][1:]) / 100.0,
+                "side": "short" if parts[3][0] == "s" else "long"}
     except ValueError:
         return None
+
+
+def order_request(symbol: str, qty: int, side: str, stop: float, target: float, day: str, risk_usd: float) -> dict:
+    """One bracket order: the entry, with its stop-loss and take-profit attached."""
+    return {
+        "symbol": symbol, "qty": str(qty), "side": "sell" if side == "short" else "buy",
+        "type": "market", "time_in_force": "gtc", "order_class": "bracket",
+        "take_profit": {"limit_price": f"{target:.2f}"},
+        "stop_loss": {"stop_price": f"{stop:.2f}"},
+        "client_order_id": make_tag(day, symbol, risk_usd, side),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -256,6 +271,9 @@ class Alpaca:
     def close_position(self, symbol: str):
         return self._call(TRADING_URL, "DELETE", f"/v2/positions/{symbol}")
 
+    def assets(self):
+        return self._call(TRADING_URL, "GET", "/v2/assets", {"status": "active", "asset_class": "us_equity"})
+
     def fills(self, after: str):
         out, token = [], None
         while True:
@@ -288,6 +306,13 @@ class Alpaca:
         page = self._call(DATA_URL, "GET", "/v2/stocks/trades/latest", {"symbols": ",".join(symbols), "feed": feed})
         return {s: float(t["p"]) for s, t in (page.get("trades") or {}).items()}
 
+    def movers(self, top: int = 50) -> dict:
+        """{"gainers": [...], "losers": [...], "actives": [...]}: today's biggest movers and most traded."""
+        m = self._call(DATA_URL, "GET", "/v1beta1/screener/stocks/movers", {"top": top})
+        a = self._call(DATA_URL, "GET", "/v1beta1/screener/stocks/most-actives", {"by": "volume", "top": top})
+        return {"gainers": m.get("gainers") or [], "losers": m.get("losers") or [],
+                "actives": a.get("most_actives") or []}
+
     def news(self, symbol: str, start: datetime, limit: int = 30) -> list:
         page = self._call(DATA_URL, "GET", "/v1beta1/news", {
             "symbols": symbol, "start": start.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -318,8 +343,9 @@ def session_today(api, day: str):
 
 
 def wrong_account(cfg: dict, positions: list, orders: list):
-    """A reason to refuse, or None. Everything in this account must be the bot's."""
-    allowed = set(cfg["universe"])
+    """A reason to refuse, or None. Everything in this account must be the bot's: a stock on its
+    fixed list, or one the bot itself traded (its orders carry the bot's tag; daily movers do)."""
+    allowed = set(cfg["universe"]) | {o["symbol"] for o in orders if parse_tag(o.get("client_order_id", ""))}
     strangers = sorted({p["symbol"] for p in positions if p["symbol"] not in allowed} |
                        {o["symbol"] for o in orders if o["symbol"] not in allowed})
     if strangers:
@@ -332,8 +358,8 @@ def wrong_account(cfg: dict, positions: list, orders: list):
 def todays_entries(orders: list, day: str) -> list:
     out = []
     for o in orders:
-        tag = parse_tag(o.get("client_order_id", ""))
-        if not tag or tag["day"] != day or o.get("side") != "buy":
+        tag = parse_tag(o.get("client_order_id", ""))                 # only entries carry the tag
+        if not tag or tag["day"] != day:
             continue
         if o.get("status") in DEAD and float(o.get("filled_qty") or 0) == 0:
             continue
@@ -363,36 +389,76 @@ def read_state(api, cfg: dict, day: str) -> dict:
 # the decision: pure, no network, fully testable
 # ---------------------------------------------------------------------------
 
-def decide(cfg: dict, bars: dict, latest: dict, state: dict, now: datetime) -> dict:
-    """What to do after the bar that just closed.
+MAJOR = {"NYSE", "NASDAQ", "ARCA", "AMEX", "BATS"}
+FUND_WORDS = ("ETF", "ETN", "Fund", "Trust", "ProShares", "Direxion", "iShares", "SPDR", "Shares", "Warrant", "Unit")
 
-    bars:   symbol -> today's 5-minute bars so far (dicts from parse_bar)
-    latest: symbol -> latest trade price (may be missing)
-    state:  from read_state (equity, cash, deployed, trades, risk_used, symbols, day_pnl)
-    Returns {"orders": [...], "notes": [...], "done": bool}.
+
+def pick_movers(cfg: dict, raw: dict, assets: dict, have: set) -> list:
+    """Today's movers worth adding to the list: real, tradable common stocks on a major exchange,
+    at or above the minimum price. Gainers, losers and most-traded take turns. Pure."""
+    out = []
+    lists = [raw.get("gainers") or [], raw.get("losers") or [], raw.get("actives") or []]
+    for i in range(max((len(x) for x in lists), default=0)):
+        for lst in lists:
+            if i >= len(lst):
+                continue
+            sym = str(lst[i].get("symbol") or "")
+            a = assets.get(sym)
+            if not sym.isalpha() or sym in have or sym in out or not a or not a.get("tradable"):
+                continue
+            if a.get("exchange") not in MAJOR or any(w in (a.get("name") or "") for w in FUND_WORDS):
+                continue
+            price = lst[i].get("price")
+            if price is not None and float(price) < cfg.get("min_price", 0):
+                continue
+            out.append(sym)
+            if len(out) >= cfg["desk"]["movers_top"]:
+                return out
+    return out
+
+
+def decide(cfg: dict, bars: dict, latest: dict, state: dict, now: datetime,
+           universe: list | None = None, can_short=None, independent: bool = False) -> dict:
+    """What the rules say after the bar that just closed.
+
+    bars:     symbol -> today's 5-minute bars so far (dicts from parse_bar)
+    latest:   symbol -> latest trade price (may be missing)
+    state:    from read_state (equity, cash, deployed, trades, risk_used, symbols, day_pnl)
+    universe: the stocks to look at (default: the fixed list)
+    can_short: symbol -> bool, or None when unknown (then shorts are allowed and the broker decides)
+    independent: check each candidate against the account as it is, instead of as if the ones
+                 before it had been taken. The desk uses this: its candidates are questions, not orders.
+    Returns {"orders": [...], "notes": [...], "done": bool, "usable": n, "fresh": n}.
     """
     bm = cfg["bar_minutes"]
     step = timedelta(minutes=bm)
+    sides = ("long", "short") if cfg.get("allow_short") else ("long",)
     notes, cands, usable = [], [], 0
-    for sym in cfg["universe"]:
+    for sym in (universe if universe is not None else cfg["universe"]):
         sb = rules.completed(rules.session_bars(bars.get(sym, []), bm), now, bm)
-        setup = rules.day_setup(sb, cfg)
-        if setup is not None:
-            usable += 1
-        if setup is None or setup["status"] in ("waiting", "expired"):
-            continue
-        closes_at = setup["bar"]["t"] + step
-        when = closes_at.strftime("%H:%M")
-        if setup["status"] == "refused":
-            if now - closes_at <= step:
-                notes.append(f"{sym}: triggered {when} but no plan: {setup['why']}")
-            continue
-        if sym in state["symbols"]:
-            continue                                   # already traded today
-        if now - closes_at > step:
-            continue                                   # an old trigger is a different trade
-        dollar_vol = sum(b["c"] * b["v"] for b in sb)
-        cands.append((dollar_vol, sym, setup, when))
+        counted = False
+        for side in sides:
+            if side == "short" and can_short is not None and not can_short(sym):
+                continue
+            setup = rules.day_setup(sb, cfg, side)
+            if setup is not None and not counted:
+                usable, counted = usable + 1, True
+            if setup is None or setup["status"] in ("waiting", "expired"):
+                continue
+            closes_at = setup["bar"]["t"] + step
+            when = closes_at.strftime("%H:%M")
+            if setup["status"] == "refused":
+                if now - closes_at <= step:
+                    notes.append(f"{sym}: triggered {when} but no plan: {setup['why']}")
+                continue
+            if sym in state["symbols"]:
+                continue                               # already traded today
+            if now - closes_at > step:
+                continue                               # an old trigger is a different trade
+            dollar_vol = sum(b["c"] * b["v"] for b in sb)
+            if dollar_vol < cfg.get("min_dollar_volume", 0) or setup["plan"]["entry"] < cfg.get("min_price", 0):
+                continue                               # too thin or too cheap to trust the chart or the fill
+            cands.append((dollar_vol, sym, setup, when))
 
     cands.sort(key=lambda c: (-c[0], c[1]))            # most traded first, like the scanner
     orders = []
@@ -401,68 +467,61 @@ def decide(cfg: dict, bars: dict, latest: dict, state: dict, now: datetime) -> d
              "day_pnl": state["day_pnl"], "equity": state["equity"]}
     day = now.strftime("%Y-%m-%d")
     for _, sym, setup, when in cands:
-        plan = setup["plan"]
-        ref = max(plan["entry"], latest.get(sym, plan["entry"]))   # a price that ran up means more risk
-        qty, which, limits = rules.size_order(ref, plan["stop"], cfg, cash, deployed, state["equity"])
+        plan, side = setup["plan"], setup["side"]
+        px = latest.get(sym, plan["entry"])            # a price that kept running means more risk
+        ref = min(plan["entry"], px) if side == "short" else max(plan["entry"], px)
+        qty, which, limits = rules.size_order(ref, plan["stop"], cfg, cash, deployed, state["equity"], side)
         why = rules.risk_check(qty, ref, plan["stop"], plan["target"], cfg, today)
         if why:
-            notes.append(f"{sym}: triggered {when} at {plan['entry']:.2f}, BLOCKED: " + "; ".join(why))
+            notes.append(f"{sym}: {side} triggered {when} at {plan['entry']:.2f}, BLOCKED: " + "; ".join(why))
             continue
-        risk_usd = qty * (ref - plan["stop"])
+        risk_usd = qty * abs(ref - plan["stop"])
         orders.append({
-            "symbol": sym, "qty": qty, "ref": ref, "entry": plan["entry"], "stop": plan["stop"],
+            "symbol": sym, "side": side, "qty": qty, "ref": ref, "entry": plan["entry"], "stop": plan["stop"],
             "target": plan["target"], "risk_usd": risk_usd, "bound_by": which, "triggered": when,
             "bar": setup["bar"],
-            "request": {
-                "symbol": sym, "qty": str(qty), "side": "buy", "type": "market", "time_in_force": "gtc",
-                "order_class": "bracket",
-                "take_profit": {"limit_price": f"{plan['target']:.2f}"},
-                "stop_loss": {"stop_price": f"{plan['stop']:.2f}"},
-                "client_order_id": make_tag(day, sym, risk_usd),
-            },
+            "request": order_request(sym, qty, side, plan["stop"], plan["target"], day, risk_usd),
         })
-        cash -= qty * ref
-        deployed += qty * ref
-        today["trades"] += 1
-        today["risk_used"] += risk_usd
+        if not independent:
+            cash -= qty * ref
+            deployed += qty * ref
+            today["trades"] += 1
+            today["risk_used"] += risk_usd
     done = today["trades"] >= cfg["max_trades_per_day"]
-    return {"orders": orders, "notes": notes, "done": done, "usable": usable, "fresh": len(cands)}
+    return {"orders": orders, "notes": notes[:20], "done": done, "usable": usable, "fresh": len(cands)}
 
 
 def approve(cfg: dict, prop: dict, latest, state: dict, now: datetime):
     """The second look, after the tap. (order request, summary line, None) or
     (None, None, why not). Pure: no network.
 
-    prop:   {"symbol", "entry", "stop", "target", "expires"}
+    prop:   {"symbol", "side", "entry", "stop", "target", "expires"}
     latest: the stock's latest trade price, or None
     state:  from read_state, read AFTER the tap
     """
-    sym = prop["symbol"]
+    sym, side = prop["symbol"], prop.get("side", "long")
+    short = side == "short"
     if now > prop["expires"]:
         return None, None, f"the approval came after {prop['expires']:%H:%M} ET, too late"
     if sym in state["symbols"]:
         return None, None, "already traded today"
     if latest is None:
         return None, None, "no current price to check the plan against"
-    if latest <= prop["stop"]:
+    if short and latest >= prop["stop"]:
+        return None, None, f"the price ({latest:.2f}) is already at or over the stop ({prop['stop']:.2f})"
+    if not short and latest <= prop["stop"]:
         return None, None, f"the price ({latest:.2f}) is already at or under the stop ({prop['stop']:.2f})"
-    ref = max(prop["entry"], latest)                   # a price that ran up means more risk
-    qty, which, _ = rules.size_order(ref, prop["stop"], cfg, state["cash"], state["deployed"], state["equity"])
+    ref = min(prop["entry"], latest) if short else max(prop["entry"], latest)   # a price that ran means more risk
+    qty, which, _ = rules.size_order(ref, prop["stop"], cfg, state["cash"], state["deployed"], state["equity"], side)
     today = {"trades": state["trades"], "risk_used": state["risk_used"],
              "day_pnl": state["day_pnl"], "equity": state["equity"]}
     why = rules.risk_check(qty, ref, prop["stop"], prop["target"], cfg, today)
     if why:
         return None, None, "; ".join(why)
-    risk_usd = qty * (ref - prop["stop"])
-    request = {
-        "symbol": sym, "qty": str(qty), "side": "buy", "type": "market", "time_in_force": "gtc",
-        "order_class": "bracket",
-        "take_profit": {"limit_price": f"{prop['target']:.2f}"},
-        "stop_loss": {"stop_price": f"{prop['stop']:.2f}"},
-        "client_order_id": make_tag(now.strftime("%Y-%m-%d"), sym, risk_usd),
-    }
-    line = (f"BUY {qty} {sym} near {ref:.2f} | stop {prop['stop']:.2f} | target {prop['target']:.2f} | "
-            f"max loss ${risk_usd:.2f} (size set by {which})")
+    risk_usd = qty * abs(ref - prop["stop"])
+    request = order_request(sym, qty, side, prop["stop"], prop["target"], now.strftime("%Y-%m-%d"), risk_usd)
+    line = (f"{'SHORT' if short else 'BUY'} {qty} {sym} near {ref:.2f} | stop {prop['stop']:.2f} | "
+            f"target {prop['target']:.2f} | max loss ${risk_usd:.2f} (size set by {which})")
     return request, line, None
 
 
@@ -475,10 +534,21 @@ class Session:
         self.pending = {}                                  # symbol -> proposal awaiting a tap
         self.seen = set()                                  # reply ids already handled
         self.since = int(_time.time()) if since is None else since
-        self.hist = {}                                     # symbol -> (bars for the replay, bars for volume)
+        self.hist_full, self.hist_live = {}, {}            # symbol -> past bars (for the replay; for volume)
+        self.universe = None                               # today's stocks: the fixed list, then the movers
+        self.assets = None                                 # symbol -> the broker's record, or None when unknown
+        self.movers_done = False
 
     def proposed(self) -> set:
+        """Every stock that triggered today and was dealt with, sent to the phone or not."""
         return {r["symbol"] for r in self.rows if r["date"] == self.day}
+
+    def sent(self) -> int:
+        return sum(1 for r in self.rows if r["date"] == self.day and r["decision"] != desk.FILTERED)
+
+    def can_short(self, symbol: str) -> bool:
+        a = (self.assets or {}).get(symbol)
+        return True if self.assets is None else bool(a and a.get("shortable") and a.get("easy_to_borrow"))
 
     def row(self, symbol: str):
         for r in self.rows:
@@ -500,36 +570,69 @@ class Session:
             print(f"[log not saved: {e}]", flush=True)
 
 
-def fetch_history(api, cfg: dict, sym: str, now: datetime, sess: Session) -> tuple:
-    """(bars for the Time Machine, bars for the volume comparison), today left out.
-    The first is the full-market feed when the account allows it; the second is the
-    live feed, so today's volume is compared with the same kind of number."""
-    if sym in sess.hist:
-        return sess.hist[sym]
+def day_universe(api, cfg: dict, sess: Session, with_movers: bool = True) -> list:
+    """Today's stock list: the fixed list (minus anything the broker no longer trades), plus,
+    once the market has been open a while, today's biggest movers and most-traded stocks."""
+    if sess.universe is None:
+        fixed = list(cfg["universe"])
+        try:
+            sess.assets = {a["symbol"]: a for a in api.assets()}
+            gone = [x for x in fixed if not sess.assets.get(x, {}).get("tradable")]
+            if gone:
+                print(f"[not tradable at the broker, left out: {', '.join(gone)}]", flush=True)
+            fixed = [x for x in fixed if x not in gone]
+        except Exception as e:
+            print(f"[could not read the broker's stock list: {e}. Using the fixed list as it is, no movers.]", flush=True)
+        sess.universe = fixed
+    if with_movers and not sess.movers_done:
+        sess.movers_done = True
+        if sess.assets and cfg["desk"].get("movers_top", 0) > 0:
+            try:
+                extra = pick_movers(cfg, api.movers(cfg["desk"]["movers_top"]), sess.assets, set(sess.universe))
+                sess.universe = sess.universe + extra
+                print(f"Added {len(extra)} of today's movers: {', '.join(extra) or 'none'}.", flush=True)
+            except Exception as e:
+                print(f"[could not read today's movers: {e}. Carrying on with the fixed list.]", flush=True)
+    return sess.universe
+
+
+def history_window(cfg: dict, now: datetime) -> tuple:
     end = datetime.combine(now.date(), time(0, 0), tzinfo=ET)
-    start = end - timedelta(days=cfg["desk"]["history_days"])
-    live = []
-    try:
-        live = api.bars([sym], start, end, cfg["live_feed"]).get(sym, [])
-    except RuntimeError as e:
-        print(f"[no {cfg['live_feed']} history for {sym}: {e}]", flush=True)
-    try:
-        full = api.bars([sym], start, end, "sip").get(sym, [])
-    except RuntimeError as e:
-        print(f"[no full-market history for {sym}, using {cfg['live_feed']}: {e}]", flush=True)
-        full = live
-    sess.hist[sym] = (full or live, live)
-    return sess.hist[sym]
+    return end - timedelta(days=cfg["desk"]["history_days"]), end
+
+
+def hist_live(api, cfg: dict, sym: str, now: datetime, sess: Session) -> list:
+    """Past bars from the live feed, today left out: today's volume is compared with the same kind of number."""
+    if sym not in sess.hist_live:
+        try:
+            sess.hist_live[sym] = api.bars([sym], *history_window(cfg, now), cfg["live_feed"]).get(sym, [])
+        except RuntimeError as e:
+            print(f"[no {cfg['live_feed']} history for {sym}: {e}]", flush=True)
+            sess.hist_live[sym] = []
+    return sess.hist_live[sym]
+
+
+def hist_full(api, cfg: dict, sym: str, now: datetime, sess: Session) -> list:
+    """Past bars for the Time Machine, today left out: the full-market feed when the account allows it."""
+    if sym not in sess.hist_full:
+        try:
+            full = api.bars([sym], *history_window(cfg, now), "sip").get(sym, [])
+        except RuntimeError as e:
+            print(f"[no full-market history for {sym}, using {cfg['live_feed']}: {e}]", flush=True)
+            full = []
+        sess.hist_full[sym] = full or hist_live(api, cfg, sym, now, sess)
+    return sess.hist_full[sym]
 
 
 def propose(api, cfg: dict, o: dict, today_bars: list, now: datetime, sess: Session, dry_run: bool = False) -> None:
     """Score one plan and ask the phone. Sends no order."""
     sym, day = o["symbol"], sess.day
+    side = o.get("side", "long")
     plan = {"entry": o["entry"], "stop": o["stop"], "target": o["target"]}
     try:
-        full, live = fetch_history(api, cfg, sym, now, sess)
-        tmres = desk.replay(full, plan, o["bar"], cfg, day, cfg["desk"]["replays"], cfg["desk"]["seed"])
-        relvol = desk.rel_volume(today_bars, live, o["bar"], day)
+        tmres = desk.replay(hist_full(api, cfg, sym, now, sess), plan, o["bar"], cfg, day,
+                            cfg["desk"]["replays"], cfg["desk"]["seed"])
+        relvol = desk.rel_volume(today_bars, hist_live(api, cfg, sym, now, sess), o["bar"], day)
     except Exception as e:                              # the score must never stop the alert
         print(f"[Time Machine failed for {sym}: {e}]", flush=True)
         tmres, relvol = {"ok": False, "why": "it could not run"}, None
@@ -542,7 +645,8 @@ def propose(api, cfg: dict, o: dict, today_bars: list, now: datetime, sess: Sess
     try:
         back = 3 if now.weekday() == 0 else 1                 # on Monday, look back over the weekend
         since = datetime.combine(now.date(), rules.CLOSE, tzinfo=ET) - timedelta(days=back)
-        headlines = desk.about(sym, api.news(sym, since))
+        name = desk.name_word(((sess.assets or {}).get(sym) or {}).get("name"))
+        headlines = desk.about(sym, api.news(sym, since), [name])
     except Exception as e:
         print(f"[no news for {sym}: {e}]", flush=True)
     points = desk.key_points(o, tmres, relvol, spy_pct, headlines)
@@ -552,11 +656,12 @@ def propose(api, cfg: dict, o: dict, today_bars: list, now: datetime, sess: Sess
         print("[dry run, nothing sent] " + title + "\n" + body, flush=True)
         return
     sess.rows.append(desk.log_row(day, o, tmres, relvol, spy_pct, headlines))
-    sent = notify(title, body, actions=buttons(sym, day, cfg["desk"]["button_style"]), priority="high")
+    sent = notify(title, body, priority="high",
+                  actions=buttons(sym, day, cfg["desk"]["button_style"], "Approve short" if side == "short" else "Approve buy"))
     if not sent:
         sess.decide_row(sym, "not sent", now, "the alert could not be sent")
         return
-    sess.pending[sym] = {**plan, "symbol": sym, "expires": expires}
+    sess.pending[sym] = {**plan, "symbol": sym, "side": side, "expires": expires}
     sess.save()
 
 
@@ -569,33 +674,79 @@ def cycle(api, cfg: dict, now: datetime, sess: Session, dry_run: bool = False) -
     if state["trades"] >= cfg["max_trades_per_day"]:
         return {"orders": [], "notes": [f"{state['trades']} trades already placed today"], "done": True,
                 "usable": 0, "fresh": 0}
+    universe = day_universe(api, cfg, sess)
     start = datetime.combine(now.date(), rules.OPEN, tzinfo=ET)
-    bars = api.bars(cfg["universe"], start, None, cfg["live_feed"])
+    bars = api.bars(universe, start, None, cfg["live_feed"])
     latest_bar = max((b["t"] for rows in bars.values() for b in rows), default=None)
     expected = now.replace(second=0, microsecond=0)
     expected -= timedelta(minutes=expected.minute % cfg["bar_minutes"] + cfg["bar_minutes"])
     if latest_bar is None or latest_bar < expected:     # the newest bar is not in yet: one more try
         _time.sleep(0 if dry_run else 15)
-        bars = api.bars(cfg["universe"], start, None, cfg["live_feed"])
+        bars = api.bars(universe, start, None, cfg["live_feed"])
     try:
-        latest = api.latest_trades(cfg["universe"], cfg["live_feed"])
+        latest = api.latest_trades(universe, cfg["live_feed"])
     except RuntimeError as e:
         latest = {}
         print(f"[no latest prices: {e}]", flush=True)
-    result = decide(cfg, bars, latest, state, now)
-    result["done"] = False                              # an alert is not a trade: only real buys end the morning
-    print(f"{now:%H:%M:%S} ET: {result['usable']} of {len(cfg['universe'])} charts usable, "
-          f"{result['fresh']} new breakouts, {len(result['orders'])} passed the risk checks.", flush=True)
+    result = decide(cfg, bars, latest, state, now, universe, sess.can_short, independent=True)
+    result["done"] = False                              # an alert is not a trade: only real trades end the day
+    print(f"{now:%H:%M:%S} ET: {result['usable']} of {len(universe)} charts usable, "
+          f"{result['fresh']} new triggers, {len(result['orders'])} passed the risk checks.", flush=True)
     for note in result["notes"]:
         print(note, flush=True)
-    for o in result["orders"]:
-        if o["symbol"] in sess.proposed():
-            continue                                       # asked once already today
-        if len(sess.proposed()) >= cfg["desk"]["max_alerts_per_day"]:
-            print(f"{o['symbol']}: not asked, {cfg['desk']['max_alerts_per_day']} alerts already sent today", flush=True)
-            continue
+    send, hold = rank(api, cfg, result["orders"], now, sess)
+    for o in send:
         propose(api, cfg, o, bars.get(o["symbol"], []), now, sess, dry_run=dry_run)
+    for o, hist, why in hold:
+        print(f"{o['symbol']} ({o['side']}): not sent, {why}.", flush=True)
+        if not dry_run:
+            sess.rows.append(desk.filtered_row(day, o, hist, why))
+    if hold and not dry_run:
+        sess.save()
     return result
+
+
+def rank(api, cfg: dict, orders: list, now: datetime, sess: Session) -> tuple:
+    """Which of this check's candidates go to the phone: (to send, [(order, record, why not)]).
+
+    Each candidate's setup is replayed on that stock's own recent sessions. Only those where it
+    made money are sent, best record first, a few per check and per day. The rest are logged."""
+    d = cfg["desk"]
+    seen, fresh = sess.proposed(), []
+    for o in orders:
+        if o["symbol"] not in seen:                        # one question per stock per day
+            seen.add(o["symbol"])
+            fresh.append(o)
+    for o in fresh[d["max_ranked_per_check"]:]:
+        print(f"{o['symbol']} ({o['side']}): not looked at, too many triggers in one check.", flush=True)
+    good, hold = [], []
+    for o in fresh[:d["max_ranked_per_check"]]:
+        try:
+            hist = desk.rule_history(hist_full(api, cfg, o["symbol"], now, sess), cfg, sess.day, None, o["side"])
+        except Exception as e:
+            print(f"[no record for {o['symbol']}: {e}]", flush=True)
+            hist = None
+        if d["min_hist_trades"] <= 0:
+            good.append((o, hist))                         # the filter is switched off
+        elif hist is None:
+            hold.append((o, None, "its past record could not be read"))
+        elif hist["trades"] < d["min_hist_trades"]:
+            hold.append((o, hist, f"only {hist['trades']} past trades of this setup on it"))
+        elif not desk.good_record(hist, cfg):
+            hold.append((o, hist, f"weak record: average {hist['avg_r']:+.2f} R over {hist['trades']} past trades"))
+        else:
+            good.append((o, hist))
+    if d["min_hist_trades"] > 0:
+        good.sort(key=lambda x: -x[1]["avg_r"])            # best recent record first
+    send = []
+    for o, hist in good:
+        if len(send) >= d["max_alerts_per_check"]:
+            hold.append((o, hist, f"{d['max_alerts_per_check']} better alerts went out in the same check"))
+        elif sess.sent() + len(send) >= d["max_alerts_per_day"]:
+            hold.append((o, hist, f"{d['max_alerts_per_day']} alerts already sent today"))
+        else:
+            send.append(o)
+    return send, hold
 
 
 def handle_replies(api, cfg: dict, sess: Session, now: datetime, replies: list) -> None:
@@ -621,13 +772,15 @@ def handle_replies(api, cfg: dict, sess: Session, now: datetime, replies: list) 
                 raise RuntimeError(state["wrong"])
             latest = api.latest_trades([sym], cfg["live_feed"]).get(sym)
             request, line, why = approve(cfg, prop, latest, state, now)
+            short = prop.get("side") == "short"
             if request is None:
                 sess.decide_row(sym, "refused", now, why)
-                notify(f"Desk did NOT buy {sym}", f"You approved, but: {why}.")
+                notify(f"Desk did NOT {'short' if short else 'buy'} {sym}", f"You approved, but: {why}.")
                 continue
             api.submit(request)
-            sess.decide_row(sym, desk.BOUGHT, now, buy_ref=f"{max(prop['entry'], latest):.2f}")
-            notify(f"Desk bought {sym}", line + "\nApproved by you. Paper account.")
+            ref = min(prop["entry"], latest) if short else max(prop["entry"], latest)
+            sess.decide_row(sym, desk.BOUGHT, now, buy_ref=f"{ref:.2f}")
+            notify(f"Desk {'shorted' if short else 'bought'} {sym}", line + "\nApproved by you. Paper account.")
         except RuntimeError as e:
             sess.decide_row(sym, "refused", now, str(e)[:200])
             notify(f"Desk: order for {sym} failed", str(e))
@@ -795,7 +948,8 @@ def cmd_run(args) -> int:
         notify("Desk bot: closed positions left over from an earlier day",
                f"{names}. " + ("All closed." if ok else "SOME ARE STILL OPEN. Check the Alpaca paper account."))
 
-    print(f"{day}: watching {len(cfg['universe'])} stocks until {cfg['no_entries_after']} ET. "
+    print(f"{day}: watching {len(day_universe(api, cfg, sess, with_movers=False))} stocks, plus today's movers "
+          f"once the market has been open a while, until {cfg['no_entries_after']} ET. "
           f"Each alert waits {cfg['desk']['approval_minutes']} minutes for a tap.", flush=True)
     full = False
     while True:
@@ -819,11 +973,13 @@ def cmd_run(args) -> int:
             full = True
             for sym in list(sess.pending):
                 sess.decide_row(sym, "expired", now_et(), "daily trade limit reached")
-    alerts = [r for r in sess.rows if r["date"] == day]
+    today = [r for r in sess.rows if r["date"] == day]
+    alerts = [r for r in today if r["decision"] != desk.FILTERED]
     bought = sum(1 for r in alerts if r["decision"] == desk.BOUGHT)
-    summary(f"## Desk bot, {day}\n- Alerts sent: {len(alerts)}. Bought on your approval: {bought}.\n" +
-            "\n".join(f"- {r['symbol']} {r['triggered']}: {r['decision']}" + (f" ({r['note']})" if r["note"] else "")
-                      for r in alerts))
+    summary(f"## Desk bot, {day}\n- Alerts sent: {len(alerts)}. Traded on your approval: {bought}. "
+            f"Triggers logged but not sent: {len(today) - len(alerts)}.\n" +
+            "\n".join(f"- {r['symbol']} {r.get('side') or 'long'} {r['triggered']}: {r['decision']}" +
+                      (f" ({r['note']})" if r["note"] else "") for r in alerts))
     print("Session over. Open trades are protected by their stop and target; "
           "the flatten job closes what is left before the bell.")
     return 0
@@ -920,9 +1076,23 @@ def cmd_status(args) -> int:
         f"At risk today: ${state['risk_used']:.2f} of ${cfg['max_daily_loss_usd']:.0f}.",
         "- Open positions: " + (", ".join(f"{p['symbol']} x{p['qty']}" for p in state["positions"]) or "none") + ".",
         f"- Kill switch (STOP file): {'ON' if STOP_FILE.exists() else 'off'}.",
+        f"- Stock list: {len(cfg['universe'])} fixed stocks, plus up to {cfg['desk'].get('movers_top', 0)} of each day's "
+        f"movers. Short selling: {'on' if cfg.get('allow_short') else 'off'}.",
         f"- Approvals: each alert waits {cfg['desk']['approval_minutes']} minutes for your tap; at most "
         f"{cfg['desk']['max_alerts_per_day']} alerts a day. Phone alerts are {'set up' if reply_topic() else 'NOT set up (no NTFY_TOPIC)'}.",
     ]
+    try:                                               # a live check of the list, the movers and the price feed
+        probe = Session(day)
+        fixed = len(day_universe(api, cfg, probe, with_movers=False))
+        uni = day_universe(api, cfg, probe)
+        got = api.bars(uni, now - timedelta(days=6), None, cfg["live_feed"], timeframe="1Day")
+        lines.append(
+            f"- Stock list check: {sum(1 for x in uni if got.get(x))} of {len(uni)} stocks returned prices "
+            f"({fixed} of the {len(cfg['universe'])} fixed stocks are tradable, {len(uni) - fixed} movers added). " +
+            ("The broker's stock list could not be read, so there are no movers and shorts are not pre-checked."
+             if probe.assets is None else f"{sum(1 for x in uni if probe.can_short(x))} can be shorted."))
+    except Exception as e:
+        lines.append(f"- **Stock list check FAILED:** {e}")
     if state["wrong"]:
         lines.append(f"- **WRONG ACCOUNT:** {state['wrong']}")
     if state["equity"] > 5 * cfg["budget"]:
