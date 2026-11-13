@@ -2,6 +2,8 @@
 
 The Day Trader skill's opening-range breakout on an Alpaca **paper** account, where nothing is bought until you tap **Approve** on your phone. It runs from GitHub, costs nothing while the repository is **public**, and needs no computer switched on.
 
+It trades both ways: it can buy a stock it expects to rise, or short one it expects to fall.
+
 It is a third, separate experiment. It must have its own paper account, not the rotation bot's or the sized-rotation bot's.
 
 **It ships switched off.** A file called `STOP` blocks all alerts and orders until you delete it.
@@ -14,9 +16,10 @@ It is a third, separate experiment. It must have its own paper account, not the 
 
 ## What it does each trading day
 
-1. **9:45 AM to 3:00 PM New York:** after every 5-minute bar closes it checks 50 large stocks. A stock triggers on its first 5-minute close above the high of its first 15 minutes. Stop at the middle of that range, target at 2x the risk, size from the smallest of four limits, every risk rule checked. This part is the day bot, unchanged.
+1. **9:45 AM to 3:00 PM New York:** after every 5-minute bar closes it checks about 250 stocks, plus up to 50 of that day's biggest movers and most-traded stocks. A stock triggers a **buy** on its first 5-minute close above the high of its first 15 minutes, or a **short** (a bet that it falls) on its first close below the low. Stop at the middle of that range, target at 2x the risk, size from the smallest of four limits, every risk rule checked.
+1. **Ranking:** each trigger's setup is replayed on that stock's own last ~60 sessions. Only triggers where it made money (at least 8 past trades, average result above zero) go to your phone, best record first, at most 2 per check. The rest are written to the log and scored like the others, so you can see later whether the filter helped.
 2. **Time Machine:** for each trigger it runs the skill's own Time Machine (10,000 replays, seed 19) on that stock's last ~60 sessions, and replays this bot's rule on each of those days.
-3. **Phone alert:** four lines (buy at, stop loss at, sell at, success likelihood), up to four key points, and two buttons: **Approve buy** and **Skip**. At most 6 alerts a day.
+3. **Phone alert:** four lines (buy at, stop loss at, sell at, success likelihood), up to four key points, and two buttons: **Approve buy** (or **Approve short**) and **Skip**. At most 8 alerts a day.
 4. **Your tap:** Approve within 10 minutes and it looks again (fresh price, fresh account, every risk check a second time) and only then sends one bracket order: buy + stop-loss + take-profit. At most 3 buys a day.
 5. **No tap, no trade.** The alert expires. A tap after the limit is refused. So is a tap after the price ran more than half the risk past the plan, or fell to the stop.
 6. **3:52 PM:** a second job sells anything still open. Nothing is held overnight.
@@ -42,16 +45,23 @@ The numbers are real, from the TSLA data that ships with the skill (Oct 19 2026)
 
 **News:** a headline is shown only when it names the company (or its ticker). Articles that are merely tagged with the ticker, such as round-ups or a story about a rival, are left out. News does not change the success likelihood.
 
+A short alert reads `Short at`, `Stop loss at` (above the price) and `Buy back at` (below it). The stop is the most a short can lose in the plan, but a stock that jumps past the stop loses more than planned.
+
 On an iPhone, press and hold the notification to see the buttons.
 
 ## Settings (`config/desk_bot.json`)
 
-Trading rules and risk limits are the day bot's, except the last entry time (3:00 PM instead of 10:30 AM): $5,000 budget, $50 max loss per trade, $150 per day, 3 trades a day, 30% biggest position, long only, no margin, flat by 3:55 PM.
+Trading rules and risk limits are the day bot's, except the last entry time (3:00 PM instead of 10:30 AM) and the short side: $5,000 budget, $50 max loss per trade, $150 per day, 3 trades a day, 30% biggest position, no borrowed money for buys, flat by 3:55 PM.
 
 | desk setting | value | meaning |
 | --- | --- | --- |
 | `approval_minutes` | 10 | how long an alert waits for your tap |
-| `max_alerts_per_day` | 6 | busy mornings do not flood your phone |
+| `max_alerts_per_day` | 8 | busy mornings do not flood your phone |
+| `max_alerts_per_check` | 2 | at most this many alerts every 5 minutes |
+| `min_hist_trades`, `min_hist_avg_r` | 8, 0.0 | the record a setup needs on that stock before it is sent; 0 trades switches the filter off |
+| `movers_top` | 50 | how many of the day's movers to add; 0 for none |
+| `min_price`, `min_dollar_volume` | $2, $100,000 | cheap or thinly traded stocks are left out |
+| `allow_short` | true | false for buys only |
 | `replays`, `seed` | 10,000, 19 | the Time Machine's defaults |
 | `history_days` | 90 | calendar days of 5-minute bars, about 60 sessions |
 | `button_style` | `http` | change to `view` if the buttons do nothing on your phone |
@@ -99,10 +109,12 @@ Delete the file `STOP`. From the next trading day you get alerts between 9:50 AM
 
 ## What has and has not been checked
 
-Checked offline by the 77 tests in `tests/`:
+Checked offline by the 87 tests in `tests/`:
 - The Time Machine gives the skill's own published numbers for TSLA on Oct 19 2026 (target first 29.4%, stop first 25.5%, neither 45.1%, average R +0.034; history 33 trades, 13 target, 15 stop, 5 neither).
 - No tap means no order. A late tap, a tap after the price ran, a tap after the stop was hit, a tap with no current price, and a tap over the daily limits are all refused. One tap buys once.
 - The whole morning loop on a fake clock, including an alert that still gets its 10 minutes at the end of the window.
+- Shorts mirror buys: trigger, stop, target, sizing, both approvals, the bracket order, scoring. A stock the broker will not lend is never shorted.
+- Ranking: only winning records are sent, best first; the rest are logged, never asked twice.
 - Everything the day bot already checked: sizing, risk limits, the wrong-account guard, flattening, the report.
 
 Not checked, because it needs your phone, your keys and a live market:
@@ -112,7 +124,11 @@ Not checked, because it needs your phone, your keys and a live market:
 - Saving `log/alerts.csv` back to the repository. If the step "Save the alert log" fails on the first morning, tell Claude.
 
 Known limits:
-- The longer window was not backtested. The backtest that failed used the 10:30 AM cutoff.
+- The longer window, the wider list, the short side and the ranking were not backtested. The backtest that failed used 50 large stocks, buys only, and the 10:30 AM cutoff.
+- Ranking by a stock's last ~60 sessions is thin evidence. A good recent record is often luck, and it does not carry forward reliably. That is why unsent triggers are logged too.
+- The daily movers come from Alpaca's screener, which has not been tried live here. If it fails, the bot carries on with the fixed list and says so in the run log.
+- Movers and smaller stocks trade thinly on the one exchange the bot sees, so their charts are patchier and fills worse than the large stocks'.
+- Short orders can be refused by the broker (no shares to borrow). You get a "failed" alert and nothing is traded.
 - The Approve button works through your ntfy topic. Anyone who knew the topic name could approve a paper trade that had already passed every risk check. Fine on paper. Not good enough for real money.
 - Live prices come from one exchange (IEX); the Time Machine's history is full-market when the account allows it.
 - Your approvals are scored at the trigger price. A real fill a few minutes later is usually a little worse.
@@ -129,7 +145,7 @@ bot/timemachine.py      the skill's Time Machine, unchanged (MIT, Jake Schincari
 config/desk_bot.json    every setting and the stock list
 log/alerts.csv          every alert, what you did, and what the plan went on to do
 scripts/orb_study.py    the backtest code (used by the tests; the rule already failed it)
-tests/                  77 offline tests
+tests/                  87 offline tests
 .github/workflows/      the three schedules
 STOP                    the off switch
 ```
