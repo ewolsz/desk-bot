@@ -73,12 +73,12 @@ class TimeMachine(unittest.TestCase):
         r = desk.replay(few, setup["plan"], setup["bar"], CFG, DAY)
         self.assertFalse(r["ok"])
         self.assertIn("full past sessions", r["why"])
-        ctx = desk.context(r, None, None, None)
-        self.assertTrue(any("No Time Machine score" in x for x in ctx["note"]))
+        self.assertIsNone(desk.likelihood(r))
 
     def test_volume_against_a_normal_morning(self):
         setup = rules.day_setup(self.today, CFG)
         rv = desk.rel_volume(self.today, self.hist, setup["bar"], DAY)
+        self.assertEqual(desk.likelihood(desk.replay(self.hist, setup["plan"], setup["bar"], CFG, DAY)), 50)
         self.assertGreater(rv, 0.2)
         self.assertLess(rv, 5)
         double = [{**b, "v": 2 * b["v"]} for b in self.today]
@@ -98,32 +98,46 @@ class Alert(unittest.TestCase):
     order = {"symbol": "AAPL", "qty": 14, "ref": 101.5, "entry": 101.5, "stop": 100.0, "target": 104.5,
              "risk_usd": 21.0, "triggered": "10:15"}
 
-    def test_lines_for_and_against(self):
-        ctx = desk.context(tmres(), 1.8, -0.4, ["Apple cuts guidance"])
-        self.assertTrue(any("no edge" in x for x in ctx["against"]))       # 32% of decided vs 33% needed
-        self.assertTrue(any("lost money" in x for x in ctx["against"]))
-        self.assertTrue(any("market is down" in x for x in ctx["against"]))
-        self.assertTrue(any("Heavy volume" in x for x in ctx["for"]))
-        self.assertTrue(any("Apple cuts guidance" in x for x in ctx["note"]))
-        good = desk.context(tmres(p_t=0.40, p_s=0.40, hist_avg=0.3), 0.5, 0.3, [])
-        self.assertTrue(any("lean to the target" in x for x in good["for"]))
-        self.assertTrue(any("made money" in x for x in good["for"]))
-        self.assertTrue(any("Light volume" in x for x in good["against"]))
-        thin = desk.context(tmres(trades=4), None, None, None)
-        self.assertTrue(any("too few" in x for x in thin["note"]))
-        self.assertTrue(any("News not checked" in x for x in thin["note"]))
+    def test_news_must_name_the_company(self):
+        items = [{"headline": "Chip stocks rally after Jensen Huang remarks", "symbols": ["NVDA", "AMD", "INTC"]},
+                 {"headline": "AMD wins a new data-center customer", "symbols": ["AMD"]},
+                 {"headline": "Nvidia supplier lifts its outlook", "symbols": ["NVDA", "AMD"]},
+                 {"headline": "Ten stocks moving at midday", "symbols": ["NVDA", "AMD", "F", "T"]},
+                 {"headline": "Ford recalls trucks; AT&T adds subscribers", "symbols": ["F", "T"]}]
+        self.assertEqual(desk.about("NVDA", items), ["Chip stocks rally after Jensen Huang remarks", "Nvidia supplier lifts its outlook"])
+        self.assertEqual(desk.about("AMD", items), ["AMD wins a new data-center customer"])
+        self.assertEqual(desk.about("INTC", items), [])                   # tagged, but not about Intel
+        self.assertEqual(desk.about("F", items), ["Ford recalls trucks; AT&T adds subscribers"])
+        self.assertEqual(desk.about("T", items), ["Ford recalls trucks; AT&T adds subscribers"])
+        self.assertEqual(desk.about("C", [{"headline": "C-suite shake-up at a retailer"}]), [])   # one-letter tickers never match
+        self.assertEqual(desk.about("NVDA", None), [])
+        self.assertEqual(set(desk.NAMES), set(CFG["universe"]))
+
+    def test_key_points(self):
+        pts = desk.key_points(self.order, tmres(), 1.8, -0.4, ["Apple cuts guidance"])
+        self.assertEqual(pts, ["Breakout: first close above the opening 15-minute high, at 10:15.",
+                               "Same setup on AAPL, last 58 days: 20 trades, 5 hit the target, 11 hit the stop.",
+                               "News: Apple cuts guidance",
+                               "Volume: 1.8x the usual for this time of day (heavy)."])
+        pts = desk.key_points(self.order, tmres(), 0.5, 0.3, [])
+        self.assertEqual(pts[2:], ["Volume: 0.5x the usual for this time of day (light).", "Market (SPY): +0.30% since the open."])
+        pts = desk.key_points(self.order, {"ok": False, "why": "it could not run"}, None, None, None)
+        self.assertEqual(pts, ["Breakout: first close above the opening 15-minute high, at 10:15.",
+                               "No Time Machine score: it could not run."])
+        self.assertIn("News: no headline about this company", desk.key_points(self.order, tmres(), None, None, [])[-1])
 
     def test_alert_text(self):
         expires = datetime(2026, 11, 10, 10, 25, tzinfo=ET)
-        title, body = desk.alert_text(self.order, tmres(), desk.context(tmres(), 1.8, -0.4, []), expires, CFG)
+        pts = desk.key_points(self.order, tmres(), 1.8, -0.4, [])
+        title, body = desk.alert_text(self.order, tmres(), pts, expires, CFG)
         self.assertEqual(title, "Desk: buy AAPL? Tap by 10:25 ET")
         title.encode("ascii")
-        for part in ("Buy 14 AAPL near 101.50 | stop 100.00 | target 104.50", "Max loss $21.00, possible gain $42.00",
-                     "Will not buy above 102.25", "Target first 24.0% | stop first 50.0% | neither 26.0%",
-                     "Ends green 41.0% (target hit, or above your entry at 15:55) | average R +0.020", "Close to break-even", "History: this rule fired on 20 of 58 days", "FOR", "AGAINST",
-                     "not a prediction", "failed its 2019-2022 backtest"):
-            self.assertIn(part, body)
-        self.assertLess(len(body.encode()), 4096)                         # ntfy's message limit
+        self.assertEqual(body.split("\n")[:6], ["Buy at: 101.50 (14 shares)", "Stop loss at: 100.00", "Sell at: 104.50",
+                                                "Success likelihood: 41%", "", "Key points:"])
+        self.assertEqual(len(body.split("\n")), 6 + len(pts))
+        self.assertLessEqual(len(pts), 4)
+        _, body = desk.alert_text(self.order, {"ok": False, "why": "x"}, [], expires, CFG)
+        self.assertIn("Success likelihood: not available", body)
 
     def test_chase_limit_is_where_reward_risk_hits_the_minimum(self):
         lim = desk.chase_limit(100.0, 104.5, CFG)
@@ -154,7 +168,7 @@ class Log(unittest.TestCase):
     def row(self, sym, decision, entry=100.0, stop=99.0, target=102.0, triggered="10:15"):
         o = {"symbol": sym, "qty": 10, "ref": entry, "entry": entry, "stop": stop, "target": target,
              "risk_usd": 10.0, "triggered": triggered}
-        r = desk.log_row("2026-11-10", o, tmres(), 1.2, 0.1, ["x"])
+        r = desk.log_row("2026-11-10", o, tmres(), 1.2, 0.1, ["Apple does a thing"])
         r["decision"] = decision
         return r
 
