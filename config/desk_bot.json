@@ -29,7 +29,7 @@
   "min_risk_pct": 0.05,
 
   "no_entries_before": "09:45",
-  "no_entries_after": "10:30",
+  "no_entries_after": "15:00",
   "flat_by": "15:55",
   "skip_early_close_days": true,
 
