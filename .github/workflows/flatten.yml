@@ -2,8 +2,14 @@ name: Desk bot flatten
 
 on:
   schedule:
-    - cron: "42 19 * * 1-5"   # 3:42 PM New York in summer
-    - cron: "42 20 * * 1-5"   # 3:42 PM New York in winter
+    - cron: "45 18 * * 1-5"
+    - cron: "5 19 * * 1-5"
+    - cron: "25 19 * * 1-5"
+    - cron: "42 19 * * 1-5"
+    - cron: "45 19 * * 1-5"
+    - cron: "5 20 * * 1-5"
+    - cron: "25 20 * * 1-5"
+    - cron: "42 20 * * 1-5"
   workflow_dispatch:
     inputs:
       now:
@@ -21,7 +27,7 @@ permissions:
 jobs:
   flatten:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 100
     steps:
       - uses: actions/checkout@v4
       - name: Flatten
