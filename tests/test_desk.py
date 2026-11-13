@@ -111,7 +111,16 @@ class Alert(unittest.TestCase):
         self.assertEqual(desk.about("T", items), ["Ford recalls trucks; AT&T adds subscribers"])
         self.assertEqual(desk.about("C", [{"headline": "C-suite shake-up at a retailer"}]), [])   # one-letter tickers never match
         self.assertEqual(desk.about("NVDA", None), [])
-        self.assertEqual(set(desk.NAMES), set(CFG["universe"]))
+        self.assertLessEqual(set(desk.NAMES), set(CFG["universe"]))
+        self.assertEqual(len(CFG["universe"]), len(set(CFG["universe"])))
+        # stocks without a hand-written name use the broker's company name
+        self.assertEqual(desk.name_word("Rivian Automotive, Inc. Class A Common Stock"), "Rivian")
+        self.assertIsNone(desk.name_word("The Trade Desk, Inc."))
+        self.assertIsNone(desk.name_word("Snap Inc."))
+        self.assertIsNone(desk.name_word(None))
+        news = [{"headline": "Rivian recalls trucks"}, {"headline": "EV stocks slide"}]
+        self.assertEqual(desk.about("RIVN", news, ["Rivian"]), ["Rivian recalls trucks"])
+        self.assertEqual(desk.about("RIVN", news, [None]), [])
 
     def test_key_points(self):
         pts = desk.key_points(self.order, tmres(), 1.8, -0.4, ["Apple cuts guidance"])
@@ -213,6 +222,14 @@ class Log(unittest.TestCase):
         self.assertIn("1 alert(s) not scored yet", md)
         self.assertIn("mostly noise", md)
         self.assertIn("| Every alert | 0 |", desk.compare([]))
+        self.assertNotIn("not sent", md)
+        short, quiet = self.row("TSLA", "bought"), self.row("AMD", "filtered")
+        short["side"] = "short"
+        short["outcome"], short["outcome_r"], quiet["outcome"], quiet["outcome_r"] = "target", "2.000", "stop", "-1.000"
+        md = desk.compare(rows[:3] + [short, quiet])
+        self.assertIn("| Every alert | 4 | 2 | 2 | 0 | +0.50 |", md)          # the unsent trigger is not an alert
+        self.assertIn("| Alerts to short | 1 | 1 | 0 | 0 | +2.00 |", md)
+        self.assertIn("| Triggers not sent (weak record) | 1 | 0 | 1 | 0 | -1.00 |", md)
 
 
 if __name__ == "__main__":
