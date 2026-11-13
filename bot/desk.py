@@ -6,7 +6,7 @@ Pure functions, no network. desk_bot.py does the talking to Alpaca and ntfy.
                 MIT, Jake Schincariol) on one plan: 10,000 replays of the rest of
                 the day built from the stock's own past sessions, plus the real
                 record of this bot's rule on those sessions.
-  context()     the lines for and against, from numbers only.
+  key_points()  up to four facts behind the alert, good or bad.
   alert_text()  what the phone shows.
   parse_*()     reading the tap that comes back.
   log + score   every alert is written down, tapped or not, and later scored the
@@ -21,6 +21,7 @@ from __future__ import annotations
 import csv
 import json
 import math
+import re
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -32,7 +33,7 @@ LOG_FIELDS = [
     "date", "symbol", "triggered", "entry", "stop", "target", "qty", "risk_usd",
     "tm_target_pct", "tm_stop_pct", "tm_neither_pct", "tm_green_pct", "tm_avg_r", "tm_sessions",
     "hist_trades", "hist_target", "hist_stop", "hist_flat", "hist_avg_r",
-    "rel_volume", "spy_pct", "headlines",
+    "rel_volume", "spy_pct", "headlines", "headline",
     "decision", "decided", "note", "buy_ref",
     "outcome", "outcome_r",
 ]
@@ -145,52 +146,66 @@ def market_move(spy_bars: list, now: datetime):
     return round(100.0 * (sb[-1]["c"] / sb[0]["o"] - 1.0), 2)
 
 
-def context(tmres: dict, relvol, spy_pct, headlines: list | None) -> dict:
-    """{"for": [...], "against": [...], "note": [...]}. Numbers only, no opinions."""
-    pro, con, note = [], [], []
+NAMES = {
+    "AAPL": ["Apple"], "MSFT": ["Microsoft"], "NVDA": ["Nvidia", "Jensen Huang"], "AMZN": ["Amazon"],
+    "GOOGL": ["Alphabet", "Google"], "META": ["Meta"], "TSLA": ["Tesla"], "AVGO": ["Broadcom"],
+    "AMD": ["AMD", "Advanced Micro"], "NFLX": ["Netflix"], "JPM": ["JPMorgan", "JP Morgan"],
+    "BAC": ["Bank of America"], "WFC": ["Wells Fargo"], "GS": ["Goldman"], "MS": ["Morgan Stanley"],
+    "C": ["Citigroup", "Citi"], "V": ["Visa"], "MA": ["Mastercard"], "XOM": ["Exxon"], "CVX": ["Chevron"],
+    "UNH": ["UnitedHealth"], "LLY": ["Eli Lilly", "Lilly"], "JNJ": ["Johnson & Johnson", "J&J"],
+    "PFE": ["Pfizer"], "MRK": ["Merck"], "ABBV": ["AbbVie"], "WMT": ["Walmart"], "COST": ["Costco"],
+    "HD": ["Home Depot"], "KO": ["Coca-Cola", "Coke"], "PEP": ["PepsiCo", "Pepsi"], "MCD": ["McDonald"],
+    "DIS": ["Disney"], "NKE": ["Nike"], "BA": ["Boeing"], "CAT": ["Caterpillar"],
+    "GE": ["GE Aerospace", "General Electric"], "F": ["Ford"], "GM": ["General Motors", "GM"],
+    "UBER": ["Uber"], "INTC": ["Intel"], "MU": ["Micron"], "CSCO": ["Cisco"], "ORCL": ["Oracle"],
+    "CRM": ["Salesforce"], "ADBE": ["Adobe"], "QCOM": ["Qualcomm"], "T": ["AT&T"], "VZ": ["Verizon"],
+    "PLTR": ["Palantir"],
+}
+
+
+def about(symbol: str, items: list | None) -> list:
+    """The headlines that are about this company: the headline itself names the
+    company (or the ticker, for tickers of three letters or more). An article that
+    is only tagged with the ticker, like a round-up or a story about a rival, does
+    not count. Newest first, as given."""
+    words = list(NAMES.get(symbol, []))
+    if len(symbol) >= 3:
+        words.append(symbol)
+    out = []
+    for it in items or []:
+        head = (it.get("headline") or "").strip().replace("\n", " ")
+        if head and any(re.search(r"(?<![A-Za-z0-9])" + re.escape(w) + r"(?![A-Za-z0-9])", head, re.I if len(w) > 3 else 0)
+                        for w in words):
+            out.append(head)
+    return out
+
+
+def key_points(o: dict, tmres: dict, relvol, spy_pct, headlines: list | None, limit: int = 4) -> list:
+    """Up to four plain facts behind the alert, good or bad. Numbers and headlines, no opinions.
+    headlines: the ones about this company (from about()), or None when news was not checked."""
+    pts = [f"Breakout: first close above the opening 15-minute high, at {o['triggered']}."]
     if tmres.get("ok"):
-        mc, lv, h = tmres["mc"], tmres["lean"], tmres["history"]
-        if lv is None:
-            note.append("No replay reached the target or the stop.")
+        h = tmres["history"]
+        if h["trades"]:
+            pts.append(f"Same setup on {o['symbol']}, last {h['sessions']} days: {h['trades']} trades, "
+                       f"{h['target']} hit the target, {h['stop']} hit the stop.")
         else:
-            d, share, even = lv
-            line = f"target came first in {100 * share:.0f}% of the replays that hit a side (break-even is {100 * even:.0f}%)"
-            if d >= tm.COIN_FLIP:
-                pro.append("Replays lean to the target: " + line + ".")
-            elif d <= -tm.COIN_FLIP:
-                con.append("Replays lean to the stop: " + line + ".")
-            else:
-                con.append("Replays show no edge: " + line + ".")
-        if h["trades"] < 10:
-            note.append(f"Only {h['trades']} past trades of this rule on this stock: too few to judge.")
-        elif h["avg_r"] >= 0.1:
-            pro.append(f"This rule made money on this stock lately: average {h['avg_r']:+.2f} R over {h['trades']} trades.")
-        elif h["avg_r"] <= -0.1:
-            con.append(f"This rule lost money on this stock lately: average {h['avg_r']:+.2f} R over {h['trades']} trades.")
-        else:
-            con.append(f"This rule was flat on this stock lately: average {h['avg_r']:+.2f} R over {h['trades']} trades.")
+            pts.append(f"Same setup on {o['symbol']}: no trades in the last {h['sessions']} days.")
     else:
-        note.append("No Time Machine score: " + tmres.get("why", "not available") + ".")
+        pts.append("No Time Machine score: " + tmres.get("why", "not available") + ".")
+    if headlines:
+        first = headlines[0]
+        if len(first) > 110:
+            first = first[:107] + "..."
+        pts.append("News: " + first)
     if relvol is not None:
-        if relvol >= 1.5:
-            pro.append(f"Heavy volume: {relvol:.1f}x a normal morning.")
-        elif relvol < 0.8:
-            con.append(f"Light volume: {relvol:.1f}x a normal morning. Quiet breakouts fail more often.")
+        word = "heavy" if relvol >= 1.5 else "light" if relvol < 0.8 else "normal"
+        pts.append(f"Volume: {relvol:.1f}x the usual for this time of day ({word}).")
     if spy_pct is not None:
-        if spy_pct >= 0.15:
-            pro.append(f"The market is up {spy_pct:+.2f}% since the open.")
-        elif spy_pct <= -0.15:
-            con.append(f"The market is down {spy_pct:+.2f}% since the open.")
-    if headlines is None:
-        note.append("News not checked.")
-    elif headlines:
-        first = headlines[0].strip().replace("\n", " ")
-        if len(first) > 90:
-            first = first[:87] + "..."
-        note.append(f"{len(headlines)} headline(s) since yesterday's close. Latest: {first}")
-    else:
-        note.append("No headlines since yesterday's close.")
-    return {"for": pro, "against": con, "note": note}
+        pts.append(f"Market (SPY): {spy_pct:+.2f}% since the open.")
+    if headlines is not None and not headlines and len(pts) < limit:
+        pts.append("News: no headline about this company since yesterday's close.")
+    return pts[:limit]
 
 
 def chase_limit(stop: float, target: float, cfg: dict) -> float:
@@ -199,36 +214,24 @@ def chase_limit(stop: float, target: float, cfg: dict) -> float:
     return math.floor((target + m * stop) / (1 + m) * 100 + 1e-6) / 100.0
 
 
-def alert_text(o: dict, tmres: dict, ctx: dict, expires: datetime, cfg: dict) -> tuple:
-    """(title, body) for the phone."""
-    gain = o["qty"] * (o["target"] - o["ref"])
+def likelihood(tmres: dict):
+    """The Time Machine's share of replays that end the day in profit: the target
+    was hit, or the price is above the entry at the flat-by time. None without a score."""
+    return round(100 * tmres["mc"]["p_green"]) if tmres.get("ok") else None
+
+
+def alert_text(o: dict, tmres: dict, points: list, expires: datetime, cfg: dict) -> tuple:
+    """(title, body) for the phone: four lines and the key points."""
     title = f"Desk: buy {o['symbol']}? Tap by {expires:%H:%M} ET"
+    like = likelihood(tmres)
     lines = [
-        f"Buy {o['qty']} {o['symbol']} near {o['ref']:.2f} | stop {o['stop']:.2f} | target {o['target']:.2f}",
-        f"Max loss ${o['risk_usd']:.2f}, possible gain ${gain:.2f}. Will not buy above {chase_limit(o['stop'], o['target'], cfg):.2f}.",
+        f"Buy at: {o['ref']:.2f} ({o['qty']} shares)",
+        f"Stop loss at: {o['stop']:.2f}",
+        f"Sell at: {o['target']:.2f}",
+        "Success likelihood: " + ("not available" if like is None else f"{like}%"),
         "",
-    ]
-    if tmres.get("ok"):
-        mc, h = tmres["mc"], tmres["history"]
-        lines += [
-            f"TIME MACHINE ({mc['replays']:,} replays, seed {mc['seed']}, {tmres['sessions']} past sessions)",
-            f"Target first {100 * mc['p_target']:.1f}% | stop first {100 * mc['p_stop']:.1f}% | "
-            f"neither {100 * mc['p_neither']:.1f}%",
-            f"Ends green {100 * mc['p_green']:.1f}% (target hit, or above your entry at {cfg['flat_by']}) | "
-            f"average R {mc['avg_R']:+.3f}",
-            tmres["verdict"],
-        ] + list(tmres["notes"])
-        if h["trades"]:
-            lines.append(f"History: this rule fired on {h['trades']} of {h['sessions']} days: {h['target']} target, "
-                         f"{h['stop']} stop, {h['flat']} neither. Average R {h['avg_r']:+.3f}.")
-        else:
-            lines.append(f"History: this rule did not fire on any of the {h['sessions']} past days.")
-        lines.append("")
-    for head, key, mark in (("FOR", "for", "+ "), ("AGAINST", "against", "- "), ("NOTE", "note", "* ")):
-        if ctx[key]:
-            lines.append(head)
-            lines += [mark + x for x in ctx[key]]
-    lines += ["", "Paper account. A simulation, not a prediction. This rule failed its 2019-2022 backtest."]
+        "Key points:",
+    ] + ["- " + x for x in points]
     return title, "\n".join(lines)
 
 
@@ -296,7 +299,8 @@ def log_row(day: str, o: dict, tmres: dict, relvol, spy_pct, headlines) -> dict:
                 "risk_usd": f"{o['risk_usd']:.2f}", "decision": "pending",
                 "rel_volume": "" if relvol is None else str(relvol),
                 "spy_pct": "" if spy_pct is None else str(spy_pct),
-                "headlines": "" if headlines is None else str(len(headlines))})
+                "headlines": "" if headlines is None else str(len(headlines)),
+                "headline": headlines[0][:200] if headlines else ""})
     if tmres.get("ok"):
         mc, h = tmres["mc"], tmres["history"]
         row.update({"tm_target_pct": f"{100 * mc['p_target']:.1f}", "tm_stop_pct": f"{100 * mc['p_stop']:.1f}",
