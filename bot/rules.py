@@ -12,7 +12,10 @@ These follow the Day Trader skill (github.com/Jakeschincariol/day-trader-skill):
   trader-risk    max loss per trade, daily loss, trades per day, reward:risk,
                  entry window, duplicates.
 
-Long side only. A bar is a dict: {"t": datetime (New York, bar start), "o", "h",
+Both sides. A short is the mirror image of a long: the trigger is the first close
+BELOW the range low, the stop is ABOVE the entry (the range midpoint, rounded up)
+and the target is below. Functions that take a stop and a target read the side
+from them (target under the stop = short). A bar is a dict: {"t": datetime (New York, bar start), "o", "h",
 "l", "c", "v"}.
 """
 
@@ -20,7 +23,7 @@ from __future__ import annotations
 
 import math
 from datetime import datetime, time, timedelta
-from decimal import ROUND_DOWN, ROUND_HALF_UP, Decimal
+from decimal import ROUND_DOWN, ROUND_HALF_UP, ROUND_UP, Decimal
 from zoneinfo import ZoneInfo
 
 ET = ZoneInfo("America/New_York")
@@ -40,6 +43,14 @@ def _d(x) -> Decimal:
 
 def floor_cent(x) -> float:
     return float(_d(x).quantize(CENT, rounding=ROUND_DOWN))
+
+
+def ceil_cent(x) -> float:
+    return float(_d(x).quantize(CENT, rounding=ROUND_UP))
+
+
+def is_short(stop: float, target: float) -> bool:
+    return target < stop
 
 
 def round_cent(x) -> float:
@@ -87,8 +98,9 @@ def opening_range(bars: list, or_minutes: int = 15, bar_minutes: int = 5):
     return max(b["h"] for b in rng), min(b["l"] for b in rng)
 
 
-def find_trigger(bars: list, or_high: float, cfg: dict):
-    """The first completed bar after the range that closes above the range high.
+def find_trigger(bars: list, level: float, cfg: dict, side: str = "long"):
+    """The first completed bar after the range that closes above the range high
+    (long; `level` is the high) or below the range low (short; `level` is the low).
 
     Returns (bar, status): status is "triggered", "waiting" (no close above yet)
     or "expired" (the first close above came outside the entry window; later
@@ -105,7 +117,7 @@ def find_trigger(bars: list, or_high: float, cfg: dict):
     for b in bars:
         if b["t"] < range_end:
             continue
-        if b["c"] > or_high:
+        if (b["c"] < level) if side == "short" else (b["c"] > level):
             closes_at = b["t"] + step
             if first_ok <= closes_at <= last_ok:
                 return b, "triggered"
@@ -117,28 +129,36 @@ def find_trigger(bars: list, or_high: float, cfg: dict):
 # the exit plan (trader-exit)
 # ---------------------------------------------------------------------------
 
-def plan_exit(entry: float, or_high: float, or_low: float, cfg: dict):
+def plan_exit(entry: float, or_high: float, or_low: float, cfg: dict, side: str = "long"):
     """(plan, None) or (None, reason). The stop and target are fixed before entry."""
     rule = cfg.get("stop_rule", "or-mid")
+    short = side == "short"
     or_high, or_low = round_cent(or_high), round_cent(or_low)
     if rule == "or-mid":
-        stop = floor_cent((_d(or_high) + _d(or_low)) / 2)
-    elif rule == "or-low":
-        stop = floor_cent(or_low)
+        mid = (_d(or_high) + _d(or_low)) / 2
+        stop = ceil_cent(mid) if short else floor_cent(mid)
+    elif rule == "or-low":                             # the far edge of the range
+        stop = ceil_cent(or_high) if short else floor_cent(or_low)
     else:
         return None, f"unknown stop rule {rule!r}"
     entry = round_cent(entry)
-    risk = round(entry - stop, 2)
+    risk = round((stop - entry) if short else (entry - stop), 2)
     if risk <= 0:
-        return None, "the stop is not below the entry"
+        return None, "the stop is not above the entry" if short else "the stop is not below the entry"
     if risk < entry * cfg.get("min_risk_pct", 0.05) / 100.0:
         return None, "the stop is too close to the entry to survive the spread"
-    target = round_cent(_d(entry) + _d(cfg["target_r"]) * _d(risk))
+    move = _d(cfg["target_r"]) * _d(risk)
+    target = round_cent(_d(entry) - move if short else _d(entry) + move)
+    if target <= 0:
+        return None, "the target is not a real price"
     return {"entry": entry, "stop": stop, "target": target, "risk": risk,
-            "target_r": cfg["target_r"]}, None
+            "target_r": cfg["target_r"], "side": side}, None
 
 
 def reward_risk(ref: float, stop: float, target: float) -> float:
+    if is_short(stop, target):
+        risk = stop - ref
+        return (ref - target) / risk if risk > 0 else -1.0
     risk = ref - stop
     return (target - ref) / risk if risk > 0 else -1.0
 
@@ -147,9 +167,10 @@ def reward_risk(ref: float, stop: float, target: float) -> float:
 # sizing (trader-budget) and the gate (trader-risk)
 # ---------------------------------------------------------------------------
 
-def size_order(ref: float, stop: float, cfg: dict, cash: float, deployed: float, equity: float):
+def size_order(ref: float, stop: float, cfg: dict, cash: float, deployed: float, equity: float,
+               side: str = "long"):
     """Whole shares: the smallest of the four limits. Returns (qty, which_limit, detail)."""
-    risk = ref - stop
+    risk = (stop - ref) if side == "short" else (ref - stop)
     if risk <= 0:
         return 0, "stop", {}
     budget = min(cfg["budget"], equity)
@@ -171,11 +192,12 @@ def risk_check(qty: int, ref: float, stop: float, target: float, cfg: dict, toda
     today: {"trades": n, "risk_used": usd, "symbols": set, "day_pnl": usd, "equity": usd}
     """
     why = []
-    risk = ref - stop
+    short = is_short(stop, target)
+    risk = (stop - ref) if short else (ref - stop)
     if qty <= 0:
         why.append("size is zero shares")
     if risk <= 0:
-        why.append("the stop is not below the entry")
+        why.append("the stop is not above the entry" if short else "the stop is not below the entry")
         return why
     if qty * ref < cfg["min_order_usd"]:
         why.append(f"order under the ${cfg['min_order_usd']:.0f} minimum")
@@ -207,23 +229,31 @@ def simulate_exit(bars_after: list, entry: float, stop: float, target: float,
     bar that touches both counts as the stop. Otherwise out at the last close at
     or before `flat_by`. Returns (exit_price, reason, exit_time)."""
     step = timedelta(minutes=bar_minutes)
+    short = is_short(stop, target)
     last = None
     for b in bars_after:
         closes_at = b["t"] + step
         if closes_at.timetz().replace(tzinfo=None) > flat_by:
             break
-        if b["l"] <= stop:
-            px = min(stop, b["o"]) if gap_fills else stop
-            return px, "stop", closes_at
-        if b["h"] >= target:
-            return target, "target", closes_at
+        if short:
+            if b["h"] >= stop:
+                px = max(stop, b["o"]) if gap_fills else stop
+                return px, "stop", closes_at
+            if b["l"] <= target:
+                return target, "target", closes_at
+        else:
+            if b["l"] <= stop:
+                px = min(stop, b["o"]) if gap_fills else stop
+                return px, "stop", closes_at
+            if b["h"] >= target:
+                return target, "target", closes_at
         last = b
     if last is None:
         return entry, "flat", None
     return last["c"], "flat", last["t"] + step
 
 
-def day_setup(bars: list, cfg: dict):
+def day_setup(bars: list, cfg: dict, side: str = "long"):
     """Everything the rules say about one stock on one day, from its session bars.
 
     Returns None when there is no usable opening range, else a dict with the
@@ -233,10 +263,10 @@ def day_setup(bars: list, cfg: dict):
     if rng is None:
         return None
     hi, lo = rng
-    bar, status = find_trigger(bars, hi, cfg)
-    out = {"or_high": hi, "or_low": lo, "status": status, "bar": bar, "plan": None, "why": None}
+    bar, status = find_trigger(bars, lo if side == "short" else hi, cfg, side)
+    out = {"or_high": hi, "or_low": lo, "status": status, "bar": bar, "plan": None, "why": None, "side": side}
     if status == "triggered":
-        plan, why = plan_exit(bar["c"], hi, lo, cfg)
+        plan, why = plan_exit(bar["c"], hi, lo, cfg, side)
         out["plan"], out["why"] = plan, why
         if plan is None:
             out["status"] = "refused"
