@@ -73,6 +73,8 @@ STOP_FILE = ROOT / "STOP"
 LOG = ROOT / "log" / "alerts.csv"
 POLL_SECONDS = 10           # how often to look for an Approve tap while one is awaited
 BENCH = "SPY"
+EARLY_START_MINUTES = 12     # a run may start this long before the open and wait; earlier ones exit
+EARLY_FLATTEN_MINUTES = 75   # a flatten run may start this long before it acts and wait
 TAG = "desk"
 SETTLE_SECONDS = 20          # wait this long after a bar closes before reading it
 DEAD = {"canceled", "rejected", "expired"}
@@ -667,8 +669,8 @@ def run_gate(cfg: dict, now: datetime, open_dt: datetime, close_dt: datetime):
     last_entry = datetime.combine(now.date(), hhmm(cfg["no_entries_after"]), tzinfo=ET)
     if cfg.get("skip_early_close_days") and close_dt.time() < rules.CLOSE:
         return f"early close at {close_dt:%H:%M}. The bot sits out early-close days."
-    if now < open_dt - timedelta(minutes=5):
-        return f"{now:%H:%M} ET is too early (this is the other season's schedule slot)."
+    if now < open_dt - timedelta(minutes=EARLY_START_MINUTES):
+        return f"{now:%H:%M} ET is too early (an early schedule slot; a later one takes over)."
     if now > last_entry:
         return f"{now:%H:%M} ET is past the last entry time {cfg['no_entries_after']}."
     return None
@@ -693,7 +695,7 @@ def flatten_plan(cfg: dict, now: datetime, close_dt: datetime):
     act_at = flat_dt - timedelta(minutes=3)
     if now >= close_dt:
         return "missed", act_at
-    if now < act_at - timedelta(minutes=40):
+    if now < act_at - timedelta(minutes=EARLY_FLATTEN_MINUTES):
         return "early", act_at
     return "go", act_at
 
@@ -867,6 +869,17 @@ def cmd_flatten(args) -> int:
         print(f"{day}: the market is closed today.")
         return 0
     _, close_dt = sess
+    missed = False
+    if not args.now:
+        verdict, act_at = flatten_plan(cfg, now, close_dt)
+        if verdict == "early":
+            print(f"{now:%H:%M} ET: too early to flatten (an early schedule slot; a later one takes over). Exiting.")
+            return 0
+        missed = verdict == "missed"
+        wait = (act_at - now).total_seconds()
+        if wait > 0 and not missed:                    # wait first, so a buy made after this run started is still sold
+            print(f"{now:%H:%M} ET: waiting until {act_at:%H:%M} to flatten.", flush=True)
+            _time.sleep(wait)
     state = read_state(api, cfg, day)
     if state["wrong"]:
         notify("Desk bot stopped: wrong account", state["wrong"])
@@ -875,19 +888,11 @@ def cmd_flatten(args) -> int:
         print("Nothing open. Nothing to do.")
         return 0
     names = ", ".join(p["symbol"] for p in state["positions"])
-    if not args.now:
-        verdict, act_at = flatten_plan(cfg, now, close_dt)
-        if verdict == "early":
-            print(f"{now:%H:%M} ET: too early to flatten (this is the other season's schedule slot). Exiting.")
-            return 0
-        if verdict == "missed":
-            notify("Desk bot: MISSED the close",
-                   f"Still holding {names} overnight. Their stop and target orders stay in place, "
-                   "and the bot sells them at the next open.")
-            return 1
-        wait = (act_at - now).total_seconds()
-        if wait > 0:
-            _time.sleep(wait)
+    if missed:
+        notify("Desk bot: MISSED the close",
+               f"Still holding {names} overnight. Their stop and target orders stay in place, "
+               "and the bot sells them at the next open.")
+        return 1
     ok = flatten_now(api)
     acct = api.account()
     pnl = float(acct["equity"]) - float(acct.get("last_equity") or acct["equity"])
