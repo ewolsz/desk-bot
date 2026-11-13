@@ -4,7 +4,7 @@ account, where nothing is bought until a person taps Approve on their phone.
 
     python3 bot/desk_bot.py status               # account, positions, today's trades
     python3 bot/desk_bot.py test-alert           # send a sample alert and wait for a tap (no orders)
-    python3 bot/desk_bot.py run                  # the morning session
+    python3 bot/desk_bot.py run                  # the trading session
     python3 bot/desk_bot.py run --once --dry-run # one look right now, nothing sent
     python3 bot/desk_bot.py flatten              # out of everything before the close
     python3 bot/desk_bot.py report               # results so far, and approved vs every alert
@@ -286,11 +286,12 @@ class Alpaca:
         page = self._call(DATA_URL, "GET", "/v2/stocks/trades/latest", {"symbols": ",".join(symbols), "feed": feed})
         return {s: float(t["p"]) for s, t in (page.get("trades") or {}).items()}
 
-    def news(self, symbol: str, start: datetime, limit: int = 10) -> list:
+    def news(self, symbol: str, start: datetime, limit: int = 30) -> list:
         page = self._call(DATA_URL, "GET", "/v1beta1/news", {
             "symbols": symbol, "start": start.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "limit": limit, "sort": "desc"})
-        return [n.get("headline", "") for n in (page.get("news") or []) if n.get("headline")]
+        return [{"headline": n["headline"], "symbols": n.get("symbols") or []}
+                for n in (page.get("news") or []) if n.get("headline")]
 
 
 def connect() -> Alpaca:
@@ -537,12 +538,14 @@ def propose(api, cfg: dict, o: dict, today_bars: list, now: datetime, sess: Sess
     except Exception as e:
         print(f"[no market read: {e}]", flush=True)
     try:
-        headlines = api.news(sym, datetime.combine(now.date(), rules.CLOSE, tzinfo=ET) - timedelta(days=1))
+        back = 3 if now.weekday() == 0 else 1                 # on Monday, look back over the weekend
+        since = datetime.combine(now.date(), rules.CLOSE, tzinfo=ET) - timedelta(days=back)
+        headlines = desk.about(sym, api.news(sym, since))
     except Exception as e:
         print(f"[no news for {sym}: {e}]", flush=True)
-    ctx = desk.context(tmres, relvol, spy_pct, headlines)
+    points = desk.key_points(o, tmres, relvol, spy_pct, headlines)
     expires = now + timedelta(minutes=cfg["desk"]["approval_minutes"])
-    title, body = desk.alert_text(o, tmres, ctx, expires, cfg)
+    title, body = desk.alert_text(o, tmres, points, expires, cfg)
     if dry_run:
         print("[dry run, nothing sent] " + title + "\n" + body, flush=True)
         return
@@ -660,7 +663,7 @@ def score_log(api, cfg: dict, rows: list, today: str) -> int:
 # ---------------------------------------------------------------------------
 
 def run_gate(cfg: dict, now: datetime, open_dt: datetime, close_dt: datetime):
-    """A reason not to start the morning session, or None."""
+    """A reason not to start the trading session, or None."""
     last_entry = datetime.combine(now.date(), hhmm(cfg["no_entries_after"]), tzinfo=ET)
     if cfg.get("skip_early_close_days") and close_dt.time() < rules.CLOSE:
         return f"early close at {close_dt:%H:%M}. The bot sits out early-close days."
@@ -810,7 +813,7 @@ def cmd_run(args) -> int:
                 return 1
             continue
         if result["done"]:
-            print("Daily trade limit reached. No more alerts this morning.")
+            print("Daily trade limit reached. No more alerts today.")
             full = True
             for sym in list(sess.pending):
                 sess.decide_row(sym, "expired", now_et(), "daily trade limit reached")
@@ -819,7 +822,7 @@ def cmd_run(args) -> int:
     summary(f"## Desk bot, {day}\n- Alerts sent: {len(alerts)}. Bought on your approval: {bought}.\n" +
             "\n".join(f"- {r['symbol']} {r['triggered']}: {r['decision']}" + (f" ({r['note']})" if r["note"] else "")
                       for r in alerts))
-    print("Morning session over. Open trades are protected by their stop and target; "
+    print("Session over. Open trades are protected by their stop and target; "
           "the flatten job closes what is left before the bell.")
     return 0
 
@@ -1005,7 +1008,7 @@ def cmd_report(args) -> int:
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description="Desk bot: opening-range breakouts on an Alpaca paper account, bought only on your approval.")
     sub = p.add_subparsers(dest="cmd", required=True)
-    r = sub.add_parser("run", help="the morning session")
+    r = sub.add_parser("run", help="the trading session")
     r.add_argument("--dry-run", action="store_true", help="decide but send no orders")
     r.add_argument("--once", action="store_true", help="one look right now instead of the whole morning")
     r.set_defaults(fn=cmd_run)
