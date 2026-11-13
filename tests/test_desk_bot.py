@@ -119,7 +119,8 @@ class Timing(unittest.TestCase):
         self.assertIsNone(desk_bot.run_gate(CFG, at("09:43"), self.open_dt, self.close_dt))
         self.assertIsNone(desk_bot.run_gate(CFG, at("10:05"), self.open_dt, self.close_dt))       # a late start still works
         self.assertIn("too early", desk_bot.run_gate(CFG, at("08:40"), self.open_dt, self.close_dt))
-        self.assertIn("too early", desk_bot.run_gate(CFG, at("09:20"), self.open_dt, self.close_dt))  # a delayed off-season slot
+        self.assertIn("too early", desk_bot.run_gate(CFG, at("09:17"), self.open_dt, self.close_dt))  # would run past GitHub's 6-hour limit
+        self.assertIsNone(desk_bot.run_gate(CFG, at("09:18"), self.open_dt, self.close_dt))           # starts early and waits for the open
         self.assertIsNone(desk_bot.run_gate(CFG, at("10:40"), self.open_dt, self.close_dt))    # the window runs to 15:00
         self.assertIn("past", desk_bot.run_gate(CFG, at("15:01"), self.open_dt, self.close_dt))
         self.assertIn("early close", desk_bot.run_gate(CFG, at("09:43"), self.open_dt, at("13:00")))
@@ -135,7 +136,8 @@ class Timing(unittest.TestCase):
     def test_flatten_plan(self):
         self.assertEqual(desk_bot.flatten_plan(CFG, at("15:45"), self.close_dt), ("go", at("15:52")))
         self.assertEqual(desk_bot.flatten_plan(CFG, at("15:58"), self.close_dt)[0], "go")           # late: act at once
-        self.assertEqual(desk_bot.flatten_plan(CFG, at("14:42"), self.close_dt)[0], "early")        # winter's first slot
+        self.assertEqual(desk_bot.flatten_plan(CFG, at("14:36"), self.close_dt)[0], "early")        # an early slot
+        self.assertEqual(desk_bot.flatten_plan(CFG, at("14:45"), self.close_dt), ("go", at("15:52")))  # starts early and waits
         self.assertEqual(desk_bot.flatten_plan(CFG, at("16:42"), self.close_dt)[0], "missed")
         self.assertEqual(desk_bot.flatten_plan(CFG, at("12:40"), at("13:00")), ("go", at("12:52")))
 
@@ -456,6 +458,29 @@ class Morning(unittest.TestCase):
         self.assertEqual({r["symbol"]: r["decision"] for r in rows}, {"AAPL": "expired", "MSFT": "expired"})
         self.assertEqual(alerts, ["Desk: buy AAPL? Tap by 10:25 ET", "Desk: buy MSFT? Tap by 10:40 ET"])
         self.assertLess(end, at("15:01"))
+
+    def test_flatten_started_early_waits_and_sells_a_later_buy(self):
+        import types
+        clock = Clock(at("14:50"))
+        api = FakeAlpaca()                                                # nothing held when the run starts
+        alerts = []
+        saved = desk_bot.now_et, desk_bot.connect, desk_bot.notify, desk_bot._time.sleep
+
+        def sleep(seconds):
+            clock.sleep(seconds)
+            if clock.now >= at("15:05") and not api._orders:               # a buy approved after this run started
+                api._orders = [order("desk-20261110-AAPL-r2100", "AAPL")]
+                api._positions = [{"symbol": "AAPL", "qty": "14", "market_value": "1421"}]
+        desk_bot.now_et, desk_bot.connect = (lambda: clock.now), (lambda: api)
+        desk_bot.notify = lambda title, body="", **k: alerts.append(title) or True
+        desk_bot._time.sleep = sleep
+        try:
+            code = desk_bot.cmd_flatten(types.SimpleNamespace(now=False))
+        finally:
+            desk_bot.now_et, desk_bot.connect, desk_bot.notify, desk_bot._time.sleep = saved
+        self.assertEqual(code, 0)
+        self.assertGreaterEqual(clock.now, at("15:52"))
+        self.assertEqual(alerts, ["Desk bot: flat for the day"])
 
     def test_stop_file_sends_nothing(self):
         import types
