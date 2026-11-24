@@ -805,73 +805,260 @@ date,symbol,side,triggered,entry,stop,target,qty,risk_usd,tm_target_pct,tm_stop_
 2026-11-20,MA,short,14:30,627.20,633.13,615.34,2,11.86,,,,,,,32,6,17,9,-0.058,,,,,filtered,,weak record: average -0.06 R over 32 past trades,,flat,0.229
 2026-11-20,CRWD,short,14:35,228.39,234.94,215.29,6,39.36,,,,,,,28,1,8,19,-0.092,,,,,filtered,,weak record: average -0.09 R over 28 past trades,,flat,-0.019
 2026-11-20,CCC,short,14:35,7.66,7.68,7.62,195,3.90,,,,,,,32,2,18,12,-0.345,,,,,filtered,,weak record: average -0.34 R over 32 past trades,,flat,-0.000
-2026-11-23,RKLB,short,09:50,49.32,50.97,46.02,28,48.72,3.5,23.2,73.3,54.8,0.120,63,33,8,10,15,0.388,1.43,-0.74,0,,expired,10:00:20,no tap in time,,,
-2026-11-23,RIOT,short,09:50,17.53,18.31,15.97,61,49.41,1.5,27.9,70.6,45.8,-0.063,63,34,10,10,14,0.356,4.32,-0.74,0,,expired,10:00:20,no tap in time,,,
-2026-11-23,CRWV,short,09:50,47.89,50.25,43.17,21,49.56,,,,,,,34,3,15,16,-0.112,,,,,filtered,,weak record: average -0.11 R over 34 past trades,,,
-2026-11-23,LRCX,short,09:50,206.82,211.92,196.62,7,36.05,,,,,,,39,5,17,17,-0.084,,,,,filtered,,weak record: average -0.08 R over 39 past trades,,,
-2026-11-23,HPE,short,09:50,45.69,48.06,40.95,21,49.77,,,,,,,34,5,14,15,-0.009,,,,,filtered,,weak record: average -0.01 R over 34 past trades,,,
-2026-11-23,MA,long,09:50,636.00,632.34,643.32,2,7.40,,,,,,,29,1,10,18,-0.192,,,,,filtered,,weak record: average -0.19 R over 29 past trades,,,
-2026-11-23,TXN,long,09:50,295.04,291.13,302.86,5,20.85,,,,,,,37,1,12,24,-0.136,,,,,filtered,,weak record: average -0.14 R over 37 past trades,,,
-2026-11-23,REGN,long,09:50,929.97,923.01,943.89,1,6.96,,,,,,,30,5,12,13,-0.005,,,,,filtered,,weak record: average -0.01 R over 30 past trades,,,
-2026-11-23,PG,long,09:50,169.48,168.27,171.90,8,10.08,,,,,,,40,6,22,12,-0.165,,,,,filtered,,weak record: average -0.17 R over 40 past trades,,,
-2026-11-23,MO,short,09:50,73.44,73.69,72.94,20,5.00,,,,,,,29,2,12,15,-0.120,,,,,filtered,,weak record: average -0.12 R over 29 past trades,,,
-2026-11-23,CME,long,09:50,307.58,304.94,312.86,4,10.98,,,,,,,34,5,19,10,-0.200,,,,,filtered,,weak record: average -0.20 R over 34 past trades,,,
-2026-11-23,ADBE,long,09:50,220.78,219.27,223.80,6,9.06,,,,,,,32,1,16,15,-0.356,,,,,filtered,,weak record: average -0.36 R over 32 past trades,,,
-2026-11-23,MCD,long,09:50,273.03,271.83,275.43,5,6.00,,,,,,,34,2,15,17,-0.126,,,,,filtered,,weak record: average -0.13 R over 34 past trades,,,
-2026-11-23,MPC,short,09:50,358.58,366.63,342.48,4,32.20,,,,,,,33,6,18,9,-0.151,,,,,filtered,,weak record: average -0.15 R over 33 past trades,,,
-2026-11-23,TGT,long,09:50,165.63,164.60,167.69,9,9.27,,,,,,,32,3,13,16,-0.099,,,,,filtered,,weak record: average -0.10 R over 32 past trades,,,
-2026-11-23,VLO,short,09:50,330.08,334.85,320.54,4,19.08,,,,,,,37,4,20,13,-0.270,,,,,filtered,,weak record: average -0.27 R over 37 past trades,,,
-2026-11-23,ISRG,long,09:50,413.90,410.51,420.68,3,10.49,,,,,,,32,5,7,20,0.304,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,SNDK,short,09:50,91.71,96.00,83.13,10,46.30,,,,,,,37,6,10,21,0.230,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,NBIS,short,09:50,100.30,105.35,90.20,9,45.45,,,,,,,35,7,12,16,0.196,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,UPS,short,09:50,106.42,107.33,104.60,14,12.74,,,,,,,32,8,12,12,0.194,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,COST,long,09:50,1097.51,1093.30,1105.93,1,4.21,,,,,,,32,6,12,14,0.160,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,CEG,short,09:50,249.51,254.76,239.01,6,31.50,,,,,,,36,7,13,16,0.151,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,MSTR,short,09:50,88.33,89.89,85.21,16,25.60,,,,,,,35,8,15,12,0.125,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,AMD,short,09:50,443.33,464.00,401.99,2,41.90,,,,,,,32,7,15,10,0.090,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,PM,short,09:50,181.98,182.65,180.64,8,5.68,,,,,,,29,6,14,9,0.046,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,WULF,short,09:50,11.20,11.64,10.32,113,49.72,,,,,,,34,5,14,15,0.041,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,DASH,long,09:50,162.44,160.21,166.90,9,22.41,,,,,,,27,4,12,11,0.037,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,COIN,short,09:50,107.75,109.72,103.81,13,25.61,,,,,,,37,5,16,16,0.029,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,V,long,09:50,410.12,407.36,415.64,3,8.28,,,,,,,32,3,10,19,0.024,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,JNJ,long,09:50,270.42,268.90,273.46,5,7.60,,,,,,,33,5,16,12,0.006,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,ETSY,short,09:55,76.18,78.19,72.16,19,38.19,2.4,17.2,80.5,58.4,0.169,63,33,9,9,15,0.580,1.41,-0.69,0,,bought,10:02:42,,76.18,,
-2026-11-23,MP,short,09:55,34.67,35.75,32.51,42,49.56,2.3,18.5,79.2,57.4,0.147,63,39,7,12,20,0.316,1.78,-0.69,0,,bought,10:02:29,,34.48,,
-2026-11-23,CRWD,short,09:55,207.16,216.18,189.12,5,45.10,,,,,,,28,1,7,20,-0.058,,,,,filtered,,weak record: average -0.06 R over 28 past trades,,,
-2026-11-23,GS,short,09:55,816.51,826.18,797.17,1,9.67,,,,,,,42,9,21,12,-0.030,,,,,filtered,,weak record: average -0.03 R over 42 past trades,,,
-2026-11-23,ABBV,long,09:55,289.15,286.42,294.61,5,13.65,,,,,,,29,3,12,14,-0.118,,,,,filtered,,weak record: average -0.12 R over 29 past trades,,,
-2026-11-23,ARM,short,09:55,173.06,179.14,160.90,7,44.31,,,,,,,36,3,20,13,-0.240,,,,,filtered,,weak record: average -0.24 R over 36 past trades,,,
-2026-11-23,LLY,long,09:55,1371.53,1357.55,1399.49,1,14.92,,,,,,,33,2,18,13,-0.317,,,,,filtered,,weak record: average -0.32 R over 33 past trades,,,
-2026-11-23,OXY,long,09:55,54.01,53.71,54.61,27,9.18,,,,,,,38,4,21,13,-0.276,,,,,filtered,,weak record: average -0.28 R over 38 past trades,,,
-2026-11-23,RBLX,short,09:55,51.35,53.19,47.67,26,48.75,,,,,,,32,1,14,17,-0.276,,,,,filtered,,weak record: average -0.28 R over 32 past trades,,,
-2026-11-23,EOG,long,09:55,148.55,147.77,150.11,10,10.10,,,,,,,39,3,18,18,-0.231,,,,,filtered,,weak record: average -0.23 R over 39 past trades,,,
-2026-11-23,MDB,short,09:55,301.60,306.58,291.64,4,19.92,,,,,,,26,2,11,13,-0.069,,,,,filtered,,weak record: average -0.07 R over 26 past trades,,,
-2026-11-23,CI,long,09:55,271.97,269.81,276.29,5,12.50,,,,,,,28,4,11,13,-0.015,,,,,filtered,,weak record: average -0.01 R over 28 past trades,,,
-2026-11-23,DG,short,09:55,132.21,132.95,130.73,11,8.14,,,,,,,40,5,17,18,-0.050,,,,,filtered,,weak record: average -0.05 R over 40 past trades,,,
-2026-11-23,HOOD,short,09:55,68.07,69.28,65.65,22,26.62,,,,,,,33,5,11,17,0.306,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,IONQ,short,09:55,23.51,24.33,21.87,58,49.30,,,,,,,37,4,8,25,0.277,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,EXPE,short,09:55,237.26,240.79,230.20,6,21.21,,,,,,,36,6,12,18,0.271,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,HON,short,09:55,218.90,219.64,217.42,6,4.47,,,,,,,37,14,18,5,0.268,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,FCX,short,09:55,49.42,50.69,46.88,30,38.10,,,,,,,34,8,9,17,0.260,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,PFE,long,09:55,27.54,27.41,27.80,54,9.18,,,,,,,25,6,9,10,0.253,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,BMY,long,09:55,59.07,58.77,59.67,25,7.50,,,,,,,26,6,12,8,0.195,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,FTNT,short,09:55,128.83,130.35,125.79,11,16.72,,,,,,,25,1,7,17,0.146,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,CVX,long,09:55,208.24,206.94,210.84,7,11.38,,,,,,,37,6,16,15,0.107,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,BIDU,short,09:55,64.99,65.70,63.57,23,16.33,,,,,,,33,5,15,13,0.098,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,ZS,short,09:55,227.56,237.77,207.14,4,40.84,,,,,,,27,3,10,14,0.097,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,RDDT,short,09:55,88.29,90.22,84.43,16,30.88,,,,,,,30,5,13,12,0.084,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,NVO,long,09:55,38.80,38.60,39.20,38,7.98,,,,,,,33,8,15,10,0.078,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,AA,short,09:55,34.60,35.07,33.66,43,20.21,,,,,,,39,5,15,19,0.076,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,HAL,short,09:55,30.93,31.19,30.41,48,12.96,,,,,,,39,7,17,15,0.059,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,PLTR,short,09:55,155.66,157.99,151.00,9,21.02,,,,,,,33,5,13,15,0.054,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,PEP,long,09:55,139.67,138.89,141.23,10,8.60,,,,,,,37,4,17,16,0.047,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,CVS,long,10:00,80.09,78.79,82.69,18,24.48,0.9,20.1,79.0,47.4,-0.035,63,25,9,8,8,0.496,1.91,-0.43,1,CVS Health Faces Potential Financial Impact from Proposed Medicare Advantage Star Ratings Reform,bought,10:02:29,,80.10,,
-2026-11-23,OKTA,long,10:00,208.62,205.42,215.02,7,26.46,24.1,55.7,20.2,39.1,0.022,63,34,6,10,18,0.245,1.73,-0.43,0,,expired,10:05:20,daily trade limit reached,,,
-2026-11-23,NVDA,long,10:00,168.56,162.03,181.62,7,47.67,,,,,,,32,2,15,15,-0.215,,,,,filtered,,weak record: average -0.21 R over 32 past trades,,,
-2026-11-23,MU,long,10:00,694.80,683.18,718.04,2,30.17,,,,,,,30,6,15,9,-0.026,,,,,filtered,,weak record: average -0.03 R over 30 past trades,,,
-2026-11-23,UNH,long,10:00,330.24,325.62,339.48,4,20.56,,,,,,,28,4,18,6,-0.378,,,,,filtered,,weak record: average -0.38 R over 28 past trades,,,
-2026-11-23,SPOT,short,10:00,575.43,582.79,560.71,2,14.72,,,,,,,29,3,14,12,-0.112,,,,,filtered,,weak record: average -0.11 R over 29 past trades,,,
-2026-11-23,CMCSA,short,10:00,24.43,24.58,24.13,61,11.59,,,,,,,38,4,24,10,-0.370,,,,,filtered,,weak record: average -0.37 R over 38 past trades,,,
-2026-11-23,GME,short,10:00,26.57,26.98,25.75,56,22.96,,,,,,,34,6,17,11,-0.060,,,,,filtered,,weak record: average -0.06 R over 34 past trades,,,
-2026-11-23,NET,long,10:00,299.86,295.76,308.06,4,20.58,,,,,,,33,6,11,16,0.227,,,,,filtered,,2 better alerts went out in the same check,,,
-2026-11-23,DVN,long,10:00,41.76,41.58,42.12,35,8.05,,,,,,,34,6,12,16,0.113,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-23,RKLB,short,09:50,49.32,50.97,46.02,28,48.72,3.5,23.2,73.3,54.8,0.120,63,33,8,10,15,0.388,1.43,-0.74,0,,expired,10:00:20,no tap in time,,flat,0.012
+2026-11-23,RIOT,short,09:50,17.53,18.31,15.97,61,49.41,1.5,27.9,70.6,45.8,-0.063,63,34,10,10,14,0.356,4.32,-0.74,0,,expired,10:00:20,no tap in time,,flat,0.487
+2026-11-23,CRWV,short,09:50,47.89,50.25,43.17,21,49.56,,,,,,,34,3,15,16,-0.112,,,,,filtered,,weak record: average -0.11 R over 34 past trades,,stop,-1.000
+2026-11-23,LRCX,short,09:50,206.82,211.92,196.62,7,36.05,,,,,,,39,5,17,17,-0.084,,,,,filtered,,weak record: average -0.08 R over 39 past trades,,stop,-1.000
+2026-11-23,HPE,short,09:50,45.69,48.06,40.95,21,49.77,,,,,,,34,5,14,15,-0.009,,,,,filtered,,weak record: average -0.01 R over 34 past trades,,stop,-1.000
+2026-11-23,MA,long,09:50,636.00,632.34,643.32,2,7.40,,,,,,,29,1,10,18,-0.192,,,,,filtered,,weak record: average -0.19 R over 29 past trades,,flat,-0.135
+2026-11-23,TXN,long,09:50,295.04,291.13,302.86,5,20.85,,,,,,,37,1,12,24,-0.136,,,,,filtered,,weak record: average -0.14 R over 37 past trades,,stop,-1.000
+2026-11-23,REGN,long,09:50,929.97,923.01,943.89,1,6.96,,,,,,,30,5,12,13,-0.005,,,,,filtered,,weak record: average -0.01 R over 30 past trades,,target,2.000
+2026-11-23,PG,long,09:50,169.48,168.27,171.90,8,10.08,,,,,,,40,6,22,12,-0.165,,,,,filtered,,weak record: average -0.17 R over 40 past trades,,flat,0.446
+2026-11-23,MO,short,09:50,73.44,73.69,72.94,20,5.00,,,,,,,29,2,12,15,-0.120,,,,,filtered,,weak record: average -0.12 R over 29 past trades,,stop,-1.000
+2026-11-23,CME,long,09:50,307.58,304.94,312.86,4,10.98,,,,,,,34,5,19,10,-0.200,,,,,filtered,,weak record: average -0.20 R over 34 past trades,,stop,-1.000
+2026-11-23,ADBE,long,09:50,220.78,219.27,223.80,6,9.06,,,,,,,32,1,16,15,-0.356,,,,,filtered,,weak record: average -0.36 R over 32 past trades,,target,2.000
+2026-11-23,MCD,long,09:50,273.03,271.83,275.43,5,6.00,,,,,,,34,2,15,17,-0.126,,,,,filtered,,weak record: average -0.13 R over 34 past trades,,target,2.000
+2026-11-23,MPC,short,09:50,358.58,366.63,342.48,4,32.20,,,,,,,33,6,18,9,-0.151,,,,,filtered,,weak record: average -0.15 R over 33 past trades,,flat,0.231
+2026-11-23,TGT,long,09:50,165.63,164.60,167.69,9,9.27,,,,,,,32,3,13,16,-0.099,,,,,filtered,,weak record: average -0.10 R over 32 past trades,,stop,-1.000
+2026-11-23,VLO,short,09:50,330.08,334.85,320.54,4,19.08,,,,,,,37,4,20,13,-0.270,,,,,filtered,,weak record: average -0.27 R over 37 past trades,,stop,-1.000
+2026-11-23,ISRG,long,09:50,413.90,410.51,420.68,3,10.49,,,,,,,32,5,7,20,0.304,,,,,filtered,,2 better alerts went out in the same check,,stop,-1.000
+2026-11-23,SNDK,short,09:50,91.71,96.00,83.13,10,46.30,,,,,,,37,6,10,21,0.230,,,,,filtered,,2 better alerts went out in the same check,,flat,0.988
+2026-11-23,NBIS,short,09:50,100.30,105.35,90.20,9,45.45,,,,,,,35,7,12,16,0.196,,,,,filtered,,2 better alerts went out in the same check,,stop,-1.000
+2026-11-23,UPS,short,09:50,106.42,107.33,104.60,14,12.74,,,,,,,32,8,12,12,0.194,,,,,filtered,,2 better alerts went out in the same check,,stop,-1.000
+2026-11-23,COST,long,09:50,1097.51,1093.30,1105.93,1,4.21,,,,,,,32,6,12,14,0.160,,,,,filtered,,2 better alerts went out in the same check,,stop,-1.000
+2026-11-23,CEG,short,09:50,249.51,254.76,239.01,6,31.50,,,,,,,36,7,13,16,0.151,,,,,filtered,,2 better alerts went out in the same check,,flat,-0.343
+2026-11-23,MSTR,short,09:50,88.33,89.89,85.21,16,25.60,,,,,,,35,8,15,12,0.125,,,,,filtered,,2 better alerts went out in the same check,,target,2.000
+2026-11-23,AMD,short,09:50,443.33,464.00,401.99,2,41.90,,,,,,,32,7,15,10,0.090,,,,,filtered,,2 better alerts went out in the same check,,stop,-1.000
+2026-11-23,PM,short,09:50,181.98,182.65,180.64,8,5.68,,,,,,,29,6,14,9,0.046,,,,,filtered,,2 better alerts went out in the same check,,stop,-1.000
+2026-11-23,WULF,short,09:50,11.20,11.64,10.32,113,49.72,,,,,,,34,5,14,15,0.041,,,,,filtered,,2 better alerts went out in the same check,,stop,-1.000
+2026-11-23,DASH,long,09:50,162.44,160.21,166.90,9,22.41,,,,,,,27,4,12,11,0.037,,,,,filtered,,2 better alerts went out in the same check,,stop,-1.000
+2026-11-23,COIN,short,09:50,107.75,109.72,103.81,13,25.61,,,,,,,37,5,16,16,0.029,,,,,filtered,,2 better alerts went out in the same check,,stop,-1.000
+2026-11-23,V,long,09:50,410.12,407.36,415.64,3,8.28,,,,,,,32,3,10,19,0.024,,,,,filtered,,2 better alerts went out in the same check,,flat,-0.112
+2026-11-23,JNJ,long,09:50,270.42,268.90,273.46,5,7.60,,,,,,,33,5,16,12,0.006,,,,,filtered,,2 better alerts went out in the same check,,flat,-0.066
+2026-11-23,ETSY,short,09:55,76.18,78.19,72.16,19,38.19,2.4,17.2,80.5,58.4,0.169,63,33,9,9,15,0.580,1.41,-0.69,0,,bought,10:02:42,,76.18,stop,-1.000
+2026-11-23,MP,short,09:55,34.67,35.75,32.51,42,49.56,2.3,18.5,79.2,57.4,0.147,63,39,7,12,20,0.316,1.78,-0.69,0,,bought,10:02:29,,34.48,stop,-1.000
+2026-11-23,CRWD,short,09:55,207.16,216.18,189.12,5,45.10,,,,,,,28,1,7,20,-0.058,,,,,filtered,,weak record: average -0.06 R over 28 past trades,,flat,-0.052
+2026-11-23,GS,short,09:55,816.51,826.18,797.17,1,9.67,,,,,,,42,9,21,12,-0.030,,,,,filtered,,weak record: average -0.03 R over 42 past trades,,stop,-1.000
+2026-11-23,ABBV,long,09:55,289.15,286.42,294.61,5,13.65,,,,,,,29,3,12,14,-0.118,,,,,filtered,,weak record: average -0.12 R over 29 past trades,,stop,-1.000
+2026-11-23,ARM,short,09:55,173.06,179.14,160.90,7,44.31,,,,,,,36,3,20,13,-0.240,,,,,filtered,,weak record: average -0.24 R over 36 past trades,,stop,-1.000
+2026-11-23,LLY,long,09:55,1371.53,1357.55,1399.49,1,14.92,,,,,,,33,2,18,13,-0.317,,,,,filtered,,weak record: average -0.32 R over 33 past trades,,flat,-0.368
+2026-11-23,OXY,long,09:55,54.01,53.71,54.61,27,9.18,,,,,,,38,4,21,13,-0.276,,,,,filtered,,weak record: average -0.28 R over 38 past trades,,stop,-1.000
+2026-11-23,RBLX,short,09:55,51.35,53.19,47.67,26,48.75,,,,,,,32,1,14,17,-0.276,,,,,filtered,,weak record: average -0.28 R over 32 past trades,,flat,-0.234
+2026-11-23,EOG,long,09:55,148.55,147.77,150.11,10,10.10,,,,,,,39,3,18,18,-0.231,,,,,filtered,,weak record: average -0.23 R over 39 past trades,,stop,-1.000
+2026-11-23,MDB,short,09:55,301.60,306.58,291.64,4,19.92,,,,,,,26,2,11,13,-0.069,,,,,filtered,,weak record: average -0.07 R over 26 past trades,,stop,-1.000
+2026-11-23,CI,long,09:55,271.97,269.81,276.29,5,12.50,,,,,,,28,4,11,13,-0.015,,,,,filtered,,weak record: average -0.01 R over 28 past trades,,stop,-1.000
+2026-11-23,DG,short,09:55,132.21,132.95,130.73,11,8.14,,,,,,,40,5,17,18,-0.050,,,,,filtered,,weak record: average -0.05 R over 40 past trades,,stop,-1.000
+2026-11-23,HOOD,short,09:55,68.07,69.28,65.65,22,26.62,,,,,,,33,5,11,17,0.306,,,,,filtered,,2 better alerts went out in the same check,,stop,-1.000
+2026-11-23,IONQ,short,09:55,23.51,24.33,21.87,58,49.30,,,,,,,37,4,8,25,0.277,,,,,filtered,,2 better alerts went out in the same check,,stop,-1.000
+2026-11-23,EXPE,short,09:55,237.26,240.79,230.20,6,21.21,,,,,,,36,6,12,18,0.271,,,,,filtered,,2 better alerts went out in the same check,,stop,-1.000
+2026-11-23,HON,short,09:55,218.90,219.64,217.42,6,4.47,,,,,,,37,14,18,5,0.268,,,,,filtered,,2 better alerts went out in the same check,,stop,-1.000
+2026-11-23,FCX,short,09:55,49.42,50.69,46.88,30,38.10,,,,,,,34,8,9,17,0.260,,,,,filtered,,2 better alerts went out in the same check,,flat,-0.213
+2026-11-23,PFE,long,09:55,27.54,27.41,27.80,54,9.18,,,,,,,25,6,9,10,0.253,,,,,filtered,,2 better alerts went out in the same check,,stop,-1.000
+2026-11-23,BMY,long,09:55,59.07,58.77,59.67,25,7.50,,,,,,,26,6,12,8,0.195,,,,,filtered,,2 better alerts went out in the same check,,target,2.000
+2026-11-23,FTNT,short,09:55,128.83,130.35,125.79,11,16.72,,,,,,,25,1,7,17,0.146,,,,,filtered,,2 better alerts went out in the same check,,stop,-1.000
+2026-11-23,CVX,long,09:55,208.24,206.94,210.84,7,11.38,,,,,,,37,6,16,15,0.107,,,,,filtered,,2 better alerts went out in the same check,,stop,-1.000
+2026-11-23,BIDU,short,09:55,64.99,65.70,63.57,23,16.33,,,,,,,33,5,15,13,0.098,,,,,filtered,,2 better alerts went out in the same check,,stop,-1.000
+2026-11-23,ZS,short,09:55,227.56,237.77,207.14,4,40.84,,,,,,,27,3,10,14,0.097,,,,,filtered,,2 better alerts went out in the same check,,flat,-0.034
+2026-11-23,RDDT,short,09:55,88.29,90.22,84.43,16,30.88,,,,,,,30,5,13,12,0.084,,,,,filtered,,2 better alerts went out in the same check,,stop,-1.000
+2026-11-23,NVO,long,09:55,38.80,38.60,39.20,38,7.98,,,,,,,33,8,15,10,0.078,,,,,filtered,,2 better alerts went out in the same check,,target,2.000
+2026-11-23,AA,short,09:55,34.60,35.07,33.66,43,20.21,,,,,,,39,5,15,19,0.076,,,,,filtered,,2 better alerts went out in the same check,,stop,-1.000
+2026-11-23,HAL,short,09:55,30.93,31.19,30.41,48,12.96,,,,,,,39,7,17,15,0.059,,,,,filtered,,2 better alerts went out in the same check,,stop,-1.000
+2026-11-23,PLTR,short,09:55,155.66,157.99,151.00,9,21.02,,,,,,,33,5,13,15,0.054,,,,,filtered,,2 better alerts went out in the same check,,stop,-1.000
+2026-11-23,PEP,long,09:55,139.67,138.89,141.23,10,8.60,,,,,,,37,4,17,16,0.047,,,,,filtered,,2 better alerts went out in the same check,,flat,0.833
+2026-11-23,CVS,long,10:00,80.09,78.79,82.69,18,24.48,0.9,20.1,79.0,47.4,-0.035,63,25,9,8,8,0.496,1.91,-0.43,1,CVS Health Faces Potential Financial Impact from Proposed Medicare Advantage Star Ratings Reform,bought,10:02:29,,80.10,flat,-0.279
+2026-11-23,OKTA,long,10:00,208.62,205.42,215.02,7,26.46,24.1,55.7,20.2,39.1,0.022,63,34,6,10,18,0.245,1.73,-0.43,0,,expired,10:05:20,daily trade limit reached,,stop,-1.005
+2026-11-23,NVDA,long,10:00,168.56,162.03,181.62,7,47.67,,,,,,,32,2,15,15,-0.215,,,,,filtered,,weak record: average -0.21 R over 32 past trades,,flat,-0.628
+2026-11-23,MU,long,10:00,694.80,683.18,718.04,2,30.17,,,,,,,30,6,15,9,-0.026,,,,,filtered,,weak record: average -0.03 R over 30 past trades,,target,2.000
+2026-11-23,UNH,long,10:00,330.24,325.62,339.48,4,20.56,,,,,,,28,4,18,6,-0.378,,,,,filtered,,weak record: average -0.38 R over 28 past trades,,flat,1.229
+2026-11-23,SPOT,short,10:00,575.43,582.79,560.71,2,14.72,,,,,,,29,3,14,12,-0.112,,,,,filtered,,weak record: average -0.11 R over 29 past trades,,stop,-1.000
+2026-11-23,CMCSA,short,10:00,24.43,24.58,24.13,61,11.59,,,,,,,38,4,24,10,-0.370,,,,,filtered,,weak record: average -0.37 R over 38 past trades,,stop,-1.000
+2026-11-23,GME,short,10:00,26.57,26.98,25.75,56,22.96,,,,,,,34,6,17,11,-0.060,,,,,filtered,,weak record: average -0.06 R over 34 past trades,,stop,-1.000
+2026-11-23,NET,long,10:00,299.86,295.76,308.06,4,20.58,,,,,,,33,6,11,16,0.227,,,,,filtered,,2 better alerts went out in the same check,,stop,-1.000
+2026-11-23,DVN,long,10:00,41.76,41.58,42.12,35,8.05,,,,,,,34,6,12,16,0.113,,,,,filtered,,2 better alerts went out in the same check,,stop,-1.000
+2026-11-24,RKLB,short,09:50,46.55,47.82,44.01,32,40.64,10.0,33.7,56.4,52.1,0.134,63,33,8,11,14,0.356,1.35,0.38,0,,bought,09:52:50,,46.55,,
+2026-11-24,AAPL,long,09:50,352.90,349.13,360.44,4,16.32,4.6,31.2,64.1,47.5,0.002,63,30,6,10,14,0.269,0.82,0.38,4,J.P. Morgan Maintains Buy Rating and $355 Price Target for Apple,bought,09:53:00,,352.90,,
+2026-11-24,AMZN,long,09:50,254.00,251.97,258.06,5,12.93,,,,,,,38,8,21,9,-0.059,,,,,filtered,,weak record: average -0.06 R over 38 past trades,,,
+2026-11-24,MSFT,long,09:50,494.18,490.96,500.62,3,9.66,,,,,,,31,2,12,17,-0.088,,,,,filtered,,weak record: average -0.09 R over 31 past trades,,,
+2026-11-24,MDT,long,09:50,100.52,97.31,106.94,14,44.94,,,,,,,40,2,18,20,-0.158,,,,,filtered,,weak record: average -0.16 R over 40 past trades,,,
+2026-11-24,UNH,long,09:50,336.63,332.44,345.01,4,17.20,,,,,,,29,4,18,7,-0.353,,,,,filtered,,weak record: average -0.35 R over 29 past trades,,,
+2026-11-24,PLTR,long,09:50,161.77,159.77,165.77,9,23.31,,,,,,,34,1,14,19,-0.155,,,,,filtered,,weak record: average -0.15 R over 34 past trades,,,
+2026-11-24,CRM,long,09:50,192.07,187.57,201.07,7,34.37,,,,,,,31,0,15,16,-0.472,,,,,filtered,,weak record: average -0.47 R over 31 past trades,,,
+2026-11-24,BAC,long,09:50,48.51,48.16,49.21,30,10.80,,,,,,,31,4,15,12,-0.237,,,,,filtered,,weak record: average -0.24 R over 31 past trades,,,
+2026-11-24,INTU,long,09:50,279.56,274.61,289.46,5,25.60,,,,,,,28,1,15,12,-0.313,,,,,filtered,,weak record: average -0.31 R over 28 past trades,,,
+2026-11-24,NOW,long,09:50,92.12,90.64,95.08,16,26.24,,,,,,,31,2,14,15,-0.188,,,,,filtered,,weak record: average -0.19 R over 31 past trades,,,
+2026-11-24,DASH,long,09:50,162.55,161.11,165.43,9,17.37,,,,,,,27,4,13,10,-0.013,,,,,filtered,,weak record: average -0.01 R over 27 past trades,,,
+2026-11-24,JPM,long,09:50,317.18,315.44,320.66,4,8.04,,,,,,,30,1,18,11,-0.388,,,,,filtered,,weak record: average -0.39 R over 30 past trades,,,
+2026-11-24,VRTX,long,09:50,561.00,550.67,581.66,2,20.66,,,,,,,30,4,15,11,-0.022,,,,,filtered,,weak record: average -0.02 R over 30 past trades,,,
+2026-11-24,NXPI,short,09:50,242.95,245.19,238.47,6,13.44,,,,,,,37,4,20,13,-0.262,,,,,filtered,,weak record: average -0.26 R over 37 past trades,,,
+2026-11-24,SPOT,long,09:50,598.63,589.17,617.55,2,24.72,,,,,,,35,3,16,16,-0.035,,,,,filtered,,weak record: average -0.04 R over 35 past trades,,,
+2026-11-24,TTWO,long,09:50,217.38,211.43,229.28,6,35.70,,,,,,,33,5,14,14,-0.156,,,,,filtered,,weak record: average -0.16 R over 33 past trades,,,
+2026-11-24,EOG,long,09:50,147.27,146.33,149.15,10,9.70,,,,,,,38,3,17,18,-0.211,,,,,filtered,,weak record: average -0.21 R over 38 past trades,,,
+2026-11-24,DE,long,09:50,633.00,630.49,638.02,2,5.02,,,,,,,38,6,18,14,-0.026,,,,,filtered,,weak record: average -0.03 R over 38 past trades,,,
+2026-11-24,NFLX,long,09:50,58.58,57.90,59.94,25,18.37,,,,,,,24,4,7,13,0.258,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,NET,long,09:50,290.73,287.12,297.95,5,18.05,,,,,,,34,6,12,16,0.190,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,MRNA,long,09:50,221.19,216.80,229.97,6,26.34,,,,,,,36,8,13,15,0.162,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,LMT,long,09:50,585.01,580.03,594.97,2,10.42,,,,,,,32,7,13,12,0.155,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,COST,long,09:50,1079.15,1073.35,1090.75,1,5.80,,,,,,,33,6,12,15,0.148,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,PFE,long,09:50,28.06,27.70,28.78,53,19.08,,,,,,,25,5,10,10,0.133,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,DVN,long,09:50,41.43,41.06,42.17,36,13.32,,,,,,,34,6,12,16,0.113,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,DIS,long,09:50,121.26,120.13,123.52,12,14.16,,,,,,,36,5,14,17,0.099,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,V,long,09:50,412.70,409.74,418.62,3,10.23,,,,,,,32,3,9,20,0.052,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,REGN,long,09:50,978.03,962.25,1009.59,1,15.78,,,,,,,30,5,12,13,0.036,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,PINS,long,09:50,19.22,18.07,21.52,43,49.67,,,,,,,29,3,11,15,0.027,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,RIOT,short,09:55,16.38,16.70,15.74,91,33.67,24.4,61.7,14.0,34.8,-0.059,63,35,10,10,15,0.361,0.75,0.5,0,,skipped,09:56:06,,,,
+2026-11-24,GM,long,09:55,81.80,81.40,82.60,18,7.20,28.0,70.4,1.6,29.2,-0.135,63,30,6,11,13,0.299,0.59,0.5,1,General Motors in Talks with Pentagon to Support Military Drone Production,skipped,09:56:16,,,,
+2026-11-24,LLY,long,09:55,1407.41,1388.76,1444.71,1,18.65,,,,,,,33,2,17,14,-0.295,,,,,filtered,,weak record: average -0.29 R over 33 past trades,,,
+2026-11-24,ABBV,long,09:55,294.88,291.95,300.74,5,14.65,,,,,,,29,3,13,13,-0.142,,,,,filtered,,weak record: average -0.14 R over 29 past trades,,,
+2026-11-24,XOM,long,09:55,159.01,157.99,161.05,9,9.99,,,,,,,38,4,19,15,-0.103,,,,,filtered,,weak record: average -0.10 R over 38 past trades,,,
+2026-11-24,KO,long,09:55,97.11,96.28,98.77,15,12.67,,,,,,,37,6,17,14,-0.020,,,,,filtered,,weak record: average -0.02 R over 37 past trades,,,
+2026-11-24,JNJ,long,09:55,273.18,270.72,278.10,5,12.30,,,,,,,33,5,16,12,-0.000,,,,,filtered,,weak record: average -0.00 R over 33 past trades,,,
+2026-11-24,CI,long,09:55,273.51,271.41,277.71,5,11.90,,,,,,,28,4,11,13,-0.015,,,,,filtered,,weak record: average -0.01 R over 28 past trades,,,
+2026-11-24,KR,long,09:55,68.68,68.02,70.00,21,18.17,,,,,,,36,5,15,16,-0.072,,,,,filtered,,weak record: average -0.07 R over 36 past trades,,,
+2026-11-24,TFC,long,09:55,47.22,46.83,48.00,31,12.09,,,,,,,24,3,13,8,-0.298,,,,,filtered,,weak record: average -0.30 R over 24 past trades,,,
+2026-11-24,MO,long,09:55,74.57,74.11,75.49,20,9.20,,,,,,,37,3,11,23,-0.031,,,,,filtered,,weak record: average -0.03 R over 37 past trades,,,
+2026-11-24,IONQ,long,09:55,23.28,22.90,24.04,64,24.32,,,,,,,26,5,12,9,-0.020,,,,,filtered,,weak record: average -0.02 R over 26 past trades,,,
+2026-11-24,WFC,long,09:55,80.58,79.74,82.26,18,15.12,,,,,,,25,5,13,7,-0.006,,,,,filtered,,weak record: average -0.01 R over 25 past trades,,,
+2026-11-24,AAL,short,09:55,12.48,12.57,12.30,120,10.80,,,,,,,35,6,16,13,-0.032,,,,,filtered,,weak record: average -0.03 R over 35 past trades,,,
+2026-11-24,ABT,long,09:55,104.73,103.12,107.95,14,24.64,,,,,,,26,1,8,17,-0.192,,,,,filtered,,weak record: average -0.19 R over 26 past trades,,,
+2026-11-24,USB,long,09:55,57.81,57.36,58.71,25,11.25,,,,,,,23,2,11,10,-0.133,,,,,filtered,,weak record: average -0.13 R over 23 past trades,,,
+2026-11-24,APO,long,09:55,119.09,117.57,122.13,12,18.24,,,,,,,33,4,19,10,-0.329,,,,,filtered,,weak record: average -0.33 R over 33 past trades,,,
+2026-11-24,VST,long,09:55,122.48,121.23,124.98,12,15.00,,,,,,,37,4,17,16,-0.125,,,,,filtered,,weak record: average -0.12 R over 37 past trades,,,
+2026-11-24,NOC,long,09:55,554.60,549.89,564.02,2,9.42,,,,,,,36,4,19,13,-0.249,,,,,filtered,,weak record: average -0.25 R over 36 past trades,,,
+2026-11-24,SOUN,long,09:55,2.80,2.75,2.90,535,26.75,,,,,,,28,6,18,4,-0.236,,,,,filtered,,weak record: average -0.24 R over 28 past trades,,,
+2026-11-24,ISRG,long,09:55,427.67,417.61,447.79,3,32.40,,,,,,,33,5,8,20,0.264,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,TJX,long,09:55,141.06,140.07,143.04,10,9.90,,,,,,,30,7,10,13,0.215,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,MSTR,short,09:55,81.52,82.19,80.18,18,15.75,,,,,,,36,9,15,12,0.177,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,EL,long,09:55,105.39,104.47,107.23,14,12.88,,,,,,,35,5,12,18,0.157,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,CHWY,short,09:55,19.58,19.73,19.28,76,12.16,,,,,,,35,10,17,8,0.152,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,WMT,long,09:55,131.33,130.49,133.01,11,9.24,,,,,,,39,5,14,20,0.138,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,KMI,long,09:55,30.67,30.35,31.31,48,16.56,,,,,,,30,5,12,13,0.100,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,BSX,long,09:55,43.17,42.29,44.93,34,29.92,,,,,,,28,6,14,8,0.094,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,TXN,short,09:55,272.18,277.49,261.56,5,30.60,,,,,,,32,9,17,6,0.083,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,SOFI,long,09:55,13.09,12.99,13.29,114,11.40,,,,,,,26,4,12,10,0.015,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,CVNA,short,10:00,67.11,67.72,65.89,22,13.42,36.9,59.8,3.3,39.4,0.156,63,35,13,13,9,0.428,0.58,0.64,0,,expired,10:10:20,no tap in time,,,
+2026-11-24,CORZ,short,10:00,11.50,11.78,10.94,130,36.40,14.8,47.7,37.5,42.2,-0.009,63,40,8,15,17,0.281,0.86,0.64,0,,expired,10:10:20,no tap in time,,,
+2026-11-24,AVGO,long,10:00,308.05,301.02,322.11,4,31.72,,,,,,,33,5,14,14,-0.031,,,,,filtered,,weak record: average -0.03 R over 33 past trades,,,
+2026-11-24,META,long,10:00,598.96,592.84,611.20,2,13.22,,,,,,,30,4,15,11,-0.170,,,,,filtered,,weak record: average -0.17 R over 30 past trades,,,
+2026-11-24,SNOW,long,10:00,274.46,271.26,280.86,5,19.95,,,,,,,33,3,14,16,-0.125,,,,,filtered,,weak record: average -0.12 R over 33 past trades,,,
+2026-11-24,T,long,10:00,22.73,22.52,23.15,65,14.30,,,,,,,40,2,25,13,-0.445,,,,,filtered,,weak record: average -0.45 R over 40 past trades,,,
+2026-11-24,SBUX,short,10:00,105.72,106.36,104.44,14,11.20,,,,,,,41,6,21,14,-0.113,,,,,filtered,,weak record: average -0.11 R over 41 past trades,,,
+2026-11-24,HIMS,long,10:00,15.05,14.83,15.49,99,23.26,,,,,,,29,7,11,11,0.217,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,VLO,long,10:00,332.15,325.31,345.83,4,27.36,,,,,,,34,4,12,18,0.116,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,RBLX,long,10:00,53.61,52.65,55.53,27,25.92,,,,,,,38,5,15,18,0.078,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,PEP,long,10:00,141.89,141.09,143.49,10,8.00,,,,,,,38,4,17,17,0.055,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,MCHP,short,10:00,57.46,58.33,55.72,26,22.62,,,,,,,41,11,22,8,0.028,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,APP,long,10:00,384.37,377.01,399.09,3,23.54,,,,,,,33,7,18,8,0.025,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,ORCL,long,10:00,111.82,110.58,114.30,13,17.94,,,,,,,29,4,10,15,0.022,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,IREN,short,10:05,13.04,13.68,11.76,74,49.58,0.9,16.3,82.9,56.1,0.098,63,38,8,10,20,0.386,2.32,0.71,0,,expired,10:15:20,no tap in time,,,
+2026-11-24,ON,short,10:05,61.91,63.30,59.13,24,35.28,6.6,36.6,56.8,46.7,-0.006,63,33,9,14,10,0.221,2.03,0.71,0,,expired,10:15:20,no tap in time,,,
+2026-11-24,CAT,short,10:05,538.30,541.41,532.08,2,6.46,,,,,,,37,7,16,14,-0.007,,,,,filtered,,weak record: average -0.01 R over 37 past trades,,,
+2026-11-24,GS,long,10:05,820.04,814.63,830.86,1,5.41,,,,,,,30,1,15,14,-0.272,,,,,filtered,,weak record: average -0.27 R over 30 past trades,,,
+2026-11-24,PG,long,10:05,171.89,170.92,173.83,8,8.56,,,,,,,41,6,22,13,-0.151,,,,,filtered,,weak record: average -0.15 R over 41 past trades,,,
+2026-11-24,MRK,long,10:05,138.03,136.05,141.99,10,19.80,,,,,,,26,3,14,9,-0.228,,,,,filtered,,weak record: average -0.23 R over 26 past trades,,,
+2026-11-24,PM,long,10:05,184.10,182.75,186.80,8,10.80,,,,,,,38,4,18,16,-0.144,,,,,filtered,,weak record: average -0.14 R over 38 past trades,,,
+2026-11-24,ANF,long,10:05,173.58,166.11,188.52,6,45.60,,,,,,,36,6,18,12,-0.022,,,,,filtered,,weak record: average -0.02 R over 36 past trades,,,
+2026-11-24,IBM,long,10:05,235.00,233.62,237.76,6,10.14,,,,,,,36,6,17,13,-0.034,,,,,filtered,,weak record: average -0.03 R over 36 past trades,,,
+2026-11-24,C,long,10:05,114.45,113.77,115.81,13,8.84,,,,,,,33,3,15,15,-0.303,,,,,filtered,,weak record: average -0.30 R over 33 past trades,,,
+2026-11-24,AXON,long,10:05,304.94,302.23,310.36,4,11.72,,,,,,,28,5,14,9,-0.116,,,,,filtered,,weak record: average -0.12 R over 28 past trades,,,
+2026-11-24,MDLZ,long,10:05,66.59,66.24,67.29,22,7.70,,,,,,,39,7,21,11,-0.105,,,,,filtered,,weak record: average -0.10 R over 39 past trades,,,
+2026-11-24,RTX,long,10:05,196.84,195.75,199.02,7,8.54,,,,,,,31,5,14,12,-0.050,,,,,filtered,,weak record: average -0.05 R over 31 past trades,,,
+2026-11-24,AA,long,10:05,34.48,34.28,34.88,43,8.60,,,,,,,30,2,15,13,-0.174,,,,,filtered,,weak record: average -0.17 R over 30 past trades,,,
+2026-11-24,ALB,long,10:05,82.30,81.53,83.84,18,13.86,,,,,,,31,4,16,11,-0.268,,,,,filtered,,weak record: average -0.27 R over 31 past trades,,,
+2026-11-24,AI,long,10:05,9.94,9.78,10.26,150,24.00,,,,,,,38,5,16,17,-0.114,,,,,filtered,,weak record: average -0.11 R over 38 past trades,,,
+2026-11-24,CMG,long,10:05,36.81,36.50,37.43,40,12.40,,,,,,,26,5,7,14,0.183,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,CIFR,short,10:05,5.68,5.94,5.16,169,49.86,,,,,,,37,7,15,15,0.148,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,ADI,short,10:05,319.69,328.68,301.71,4,38.36,,,,,,,34,9,15,10,0.122,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,HD,long,10:05,348.34,345.89,353.24,4,9.80,,,,,,,32,5,14,13,0.104,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,GILD,long,10:05,175.69,173.36,180.35,8,19.20,,,,,,,30,1,10,19,0.034,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,DAL,long,10:05,84.19,83.73,85.11,17,9.35,,,,,,,31,3,13,15,0.005,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,SPCX,short,10:05,128.70,130.95,124.20,11,25.96,,,,,,,33,5,11,17,0.003,,,,,filtered,,2 better alerts went out in the same check,,,
+2026-11-24,CRWV,short,10:10,43.88,45.64,40.36,25,50.00,,,,,,,35,3,16,16,-0.138,,,,,filtered,,weak record: average -0.14 R over 35 past trades,,,
+2026-11-24,CRWD,short,10:10,209.03,212.58,201.93,7,30.24,,,,,,,28,0,7,21,-0.132,,,,,filtered,,weak record: average -0.13 R over 28 past trades,,,
+2026-11-24,ARM,short,10:10,162.96,167.04,154.80,9,43.78,,,,,,,36,3,20,13,-0.240,,,,,filtered,,weak record: average -0.24 R over 36 past trades,,,
+2026-11-24,VZ,long,10:10,47.03,46.72,47.65,31,10.23,,,,,,,38,4,16,18,-0.094,,,,,filtered,,weak record: average -0.09 R over 38 past trades,,,
+2026-11-24,TGT,long,10:10,175.39,172.78,180.61,8,20.88,,,,,,,33,4,13,16,-0.036,,,,,filtered,,weak record: average -0.04 R over 33 past trades,,,
+2026-11-24,CMCSA,long,10:10,25.24,24.96,25.80,59,16.52,,,,,,,34,1,13,20,-0.142,,,,,filtered,,weak record: average -0.14 R over 34 past trades,,,
+2026-11-24,MCD,long,10:10,279.30,277.85,282.20,5,7.25,,,,,,,35,3,15,17,-0.065,,,,,filtered,,weak record: average -0.07 R over 35 past trades,,,
+2026-11-24,ASTS,short,10:10,23.55,24.35,21.95,52,49.14,,,,,,,37,6,9,22,0.428,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,JOBY,short,10:10,3.63,3.73,3.43,413,43.36,,,,,,,43,7,13,23,0.245,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,TSM,short,10:10,347.68,352.51,338.02,4,22.52,,,,,,,36,9,13,14,0.209,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,NBIS,short,10:10,88.41,92.14,80.95,11,47.85,,,,,,,35,7,12,16,0.196,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,CDNS,short,10:10,295.99,298.50,290.97,5,16.00,,,,,,,34,6,12,16,0.168,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,ALTG,long,10:10,6.23,5.55,7.59,73,49.64,,,,,,,22,5,9,8,0.157,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,CLSK,short,10:10,5.10,5.23,4.84,295,47.20,,,,,,,39,7,15,17,0.107,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,ASML,short,10:10,1338.93,1350.07,1316.65,1,13.47,,,,,,,42,9,17,16,0.077,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,KLAC,short,10:10,134.08,136.98,128.28,11,31.90,,,,,,,39,7,18,14,0.071,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,SMCI,short,10:10,22.88,23.34,21.96,65,38.35,,,,,,,40,7,14,19,0.050,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,UAL,long,10:10,107.99,106.92,110.13,13,13.91,,,,,,,30,7,13,10,0.043,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,ZS,short,10:10,229.87,233.34,222.93,6,29.04,,,,,,,27,2,10,15,0.022,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,COIN,short,10:10,105.13,106.40,102.59,14,22.40,,,,,,,38,5,17,16,0.002,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,INTC,short,10:15,55.98,56.76,54.42,26,24.70,,,,,,,37,5,17,15,-0.099,,,,,filtered,,weak record: average -0.10 R over 37 past trades,,,
+2026-11-24,CSX,long,10:15,49.67,49.36,50.29,30,10.50,,,,,,,30,3,12,15,-0.085,,,,,filtered,,weak record: average -0.09 R over 30 past trades,,,
+2026-11-24,HPQ,long,10:15,28.86,28.56,29.46,51,16.07,,,,,,,34,4,11,19,-0.041,,,,,filtered,,weak record: average -0.04 R over 34 past trades,,,
+2026-11-24,NKE,long,10:15,35.33,34.57,36.85,42,31.92,,,,,,,30,4,10,16,0.257,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,SNDK,short,10:15,78.45,81.36,72.63,16,48.96,,,,,,,37,6,10,21,0.235,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,OKTA,long,10:15,207.12,205.00,211.36,7,20.02,,,,,,,35,6,11,18,0.210,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,VALE,short,10:15,9.63,9.71,9.47,155,12.40,,,,,,,47,10,22,15,0.080,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,LULU,long,10:15,108.44,106.20,112.92,13,29.12,,,,,,,33,8,16,9,0.058,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,CLF,short,10:15,10.66,10.83,10.32,140,23.80,,,,,,,34,6,16,12,0.037,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,TSLA,short,10:20,380.30,385.26,370.38,3,14.91,,,,,,,27,4,10,13,-0.079,,,,,filtered,,weak record: average -0.08 R over 27 past trades,,,
+2026-11-24,LRCX,short,10:20,194.59,198.65,186.47,7,28.42,,,,,,,39,5,18,16,-0.093,,,,,filtered,,weak record: average -0.09 R over 39 past trades,,,
+2026-11-24,EBAY,short,10:20,116.15,117.47,113.51,12,17.40,,,,,,,33,4,18,11,-0.201,,,,,filtered,,weak record: average -0.20 R over 33 past trades,,,
+2026-11-24,NVDA,short,10:20,153.30,156.81,146.28,9,31.59,,,,,,,36,11,11,14,0.491,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,DELL,short,10:20,294.40,306.82,269.56,3,37.65,,,,,,,33,7,9,17,0.412,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,ETN,short,10:20,323.00,326.05,316.90,4,13.18,,,,,,,35,7,11,17,0.340,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,AMAT,short,10:20,321.14,329.10,305.22,4,31.84,,,,,,,38,11,14,13,0.318,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,SMR,short,10:20,3.31,3.37,3.19,453,27.18,,,,,,,40,5,14,21,0.272,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,HOOD,short,10:20,64.56,65.54,62.60,23,22.54,,,,,,,34,5,12,17,0.267,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,MRVL,short,10:20,131.99,137.23,121.51,9,47.16,,,,,,,35,10,12,13,0.265,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,FCX,short,10:20,47.09,47.53,46.21,31,16.43,,,,,,,35,8,9,18,0.247,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,QBTS,short,10:20,6.78,6.98,6.38,221,44.20,,,,,,,42,10,17,15,0.247,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,RGTI,short,10:20,7.57,7.73,7.25,198,31.68,,,,,,,41,8,13,20,0.236,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,MU,short,10:20,634.42,656.15,590.96,2,43.46,,,,,,,30,5,7,18,0.220,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,NOK,short,10:20,7.28,7.36,7.12,206,17.51,,,,,,,40,10,20,10,0.064,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,MS,short,10:25,170.97,171.96,168.99,8,9.44,,,,,,,44,7,23,14,-0.129,,,,,filtered,,weak record: average -0.13 R over 44 past trades,,,
+2026-11-24,GME,short,10:25,27.24,27.48,26.76,55,13.48,,,,,,,35,6,18,11,-0.087,,,,,filtered,,weak record: average -0.09 R over 35 past trades,,,
+2026-11-24,CSCO,short,10:25,94.15,95.12,92.21,15,17.40,,,,,,,35,10,10,15,0.439,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,GEV,short,10:25,721.04,735.27,692.58,2,28.74,,,,,,,33,9,10,14,0.345,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,MP,short,10:25,35.09,36.30,32.67,41,49.61,,,,,,,40,7,13,20,0.283,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,EXPE,short,10:25,239.43,241.11,236.07,6,10.11,,,,,,,36,6,12,18,0.271,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,SNPS,short,10:25,418.54,420.92,413.78,3,9.69,,,,,,,33,6,13,14,0.116,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,ANT,short,10:30,79.03,81.46,74.17,18,43.74,,,,,,,1,0,1,0,-1.000,,,,,filtered,,only 1 past trades of this setup on it,,,
+2026-11-24,UPST,short,10:30,16.68,16.87,16.30,89,16.91,,,,,,,41,4,18,19,-0.029,,,,,filtered,,weak record: average -0.03 R over 41 past trades,,,
+2026-11-24,HLT,short,10:30,362.72,364.03,360.10,4,5.24,,,,,,,33,8,9,16,0.393,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,MAR,short,10:30,412.90,414.30,410.10,3,4.20,,,,,,,35,5,14,16,0.173,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,ANET,short,10:30,166.36,170.68,157.72,9,39.15,,,,,,,30,2,8,20,0.153,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,BIDU,short,10:30,63.23,63.85,61.99,23,14.26,,,,,,,33,5,15,13,0.098,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,CCL,short,10:30,27.52,27.75,27.06,54,12.42,,,,,,,40,7,18,15,0.062,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,MELI,long,10:35,1440.18,1422.37,1475.80,1,17.81,,,,,,,30,4,13,13,-0.036,,,,,filtered,,weak record: average -0.04 R over 30 past trades,,,
+2026-11-24,ETSY,short,10:40,78.23,79.38,75.93,19,21.85,,,,,,,33,9,10,14,0.524,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,NEM,short,10:45,99.12,100.28,96.80,15,17.40,,,,,,,36,8,14,14,-0.006,,,,,filtered,,weak record: average -0.01 R over 36 past trades,,,
+2026-11-24,NCLH,short,10:45,16.63,16.81,16.27,90,16.20,,,,,,,40,7,19,14,-0.004,,,,,filtered,,weak record: average -0.00 R over 40 past trades,,,
+2026-11-24,LUV,short,10:45,45.12,45.44,44.48,33,10.56,,,,,,,41,7,19,15,-0.027,,,,,filtered,,weak record: average -0.03 R over 41 past trades,,,
+2026-11-24,NU,short,10:45,11.82,11.95,11.56,126,16.38,,,,,,,33,7,10,16,0.357,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,GOOGL,short,10:45,276.90,279.25,272.20,5,11.75,,,,,,,36,10,14,12,0.351,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,DG,long,10:45,140.11,137.75,144.83,10,25.30,,,,,,,31,7,13,11,0.201,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,SHOP,short,10:45,134.30,135.50,131.90,11,13.20,,,,,,,28,3,9,16,0.115,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,AMD,short,10:45,402.78,416.93,374.48,3,42.45,,,,,,,33,7,16,10,0.057,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,AMC,long,10:50,2.89,2.85,2.97,519,20.76,,,,,,,40,8,22,10,-0.065,,,,,filtered,,weak record: average -0.07 R over 40 past trades,,,
+2026-11-24,XPEV,short,10:50,8.76,8.91,8.46,171,25.65,,,,,,,36,6,8,22,0.328,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,CELH,long,10:55,29.39,28.95,30.27,51,22.44,,,,,,,36,7,20,9,-0.182,,,,,filtered,,weak record: average -0.18 R over 36 past trades,,,
+2026-11-24,DLTR,long,11:00,156.00,151.81,164.38,9,37.71,,,,,,,30,7,13,10,0.138,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,BLK,short,11:05,1133.73,1144.41,1112.37,1,10.68,,,,,,,38,8,19,11,-0.032,,,,,filtered,,weak record: average -0.03 R over 38 past trades,,,
+2026-11-24,LI,short,11:05,10.42,10.59,10.08,143,24.31,,,,,,,35,4,9,22,0.163,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,BABA,short,11:05,83.51,84.22,82.09,17,13.43,,,,,,,36,6,16,14,0.033,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,AFRM,short,11:15,57.77,58.82,55.67,25,26.25,,,,,,,35,9,13,13,0.270,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,UPS,long,11:25,108.97,108.40,110.11,13,7.41,,,,,,,36,6,16,14,0.092,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,HPE,short,11:55,40.04,41.16,37.80,37,41.44,,,,,,,35,5,15,15,-0.037,,,,,filtered,,weak record: average -0.04 R over 35 past trades,,,
+2026-11-24,ZM,short,11:55,87.18,89.69,82.16,17,42.67,,,,,,,31,3,16,12,-0.196,,,,,filtered,,weak record: average -0.20 R over 31 past trades,,,
+2026-11-24,NUE,long,12:10,244.69,242.39,249.29,6,13.80,,,,,,,35,3,20,12,-0.295,,,,,filtered,,weak record: average -0.29 R over 35 past trades,,,
+2026-11-24,QCOM,long,12:35,165.29,162.75,170.37,9,23.76,,,,,,,37,4,21,12,-0.292,,,,,filtered,,weak record: average -0.29 R over 37 past trades,,,
+2026-11-24,BA,long,12:45,164.05,162.72,166.71,9,11.97,,,,,,,34,4,19,11,-0.210,,,,,filtered,,weak record: average -0.21 R over 34 past trades,,,
+2026-11-24,INSM,short,12:50,170.23,170.40,169.89,8,1.40,,,,,,,38,7,19,12,-0.039,,,,,filtered,,weak record: average -0.04 R over 38 past trades,,,
+2026-11-24,PANW,long,13:00,358.25,352.89,368.97,4,21.44,,,,,,,29,5,7,17,0.174,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,PDD,long,13:05,86.26,85.26,88.26,17,18.02,,,,,,,29,2,7,20,-0.198,,,,,filtered,,weak record: average -0.20 R over 29 past trades,,,
+2026-11-24,BNAI,long,13:20,6.45,6.07,7.21,131,49.78,,,,,,,20,5,12,3,-0.109,,,,,filtered,,weak record: average -0.11 R over 20 past trades,,,
+2026-11-24,NVO,long,14:25,40.53,39.91,41.77,37,22.94,,,,,,,33,9,14,10,0.169,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,LYFT,short,14:40,16.15,16.31,15.83,92,14.72,,,,,,,31,8,13,10,0.185,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,MARA,long,14:45,5.45,5.34,5.67,275,30.25,,,,,,,29,5,11,13,0.037,,,,,filtered,,8 alerts already sent today,,,
+2026-11-24,SNAP,short,14:50,4.89,4.98,4.71,306,27.54,,,,,,,29,6,13,10,0.061,,,,,filtered,,8 alerts already sent today,,,
